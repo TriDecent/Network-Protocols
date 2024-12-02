@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+namespace UDP.Client;
+
 public class Client(UdpClient client)
 {
   private readonly UdpClient _client = client;
