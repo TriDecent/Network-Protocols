@@ -24,4 +24,4 @@ while (true)
   GetStringFromUser();
 }
 
-static string GetStringFromUser() => Console.ReadLine()!;
+static string? GetStringFromUser() => Console.ReadLine();
