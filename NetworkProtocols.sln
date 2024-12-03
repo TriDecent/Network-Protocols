@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCP", "TCP\TCP.csproj", "{C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UDP", "UDP\UDP.csproj", "{F75647CA-0D61-4C18-98DC-96DBC133243E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpClient", "TcpClient\TcpClient.csproj", "{132AF6AD-5687-4F14-8BFE-A91FF98734DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{F75647CA-0D61-4C18-98DC-96DBC133243E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F75647CA-0D61-4C18-98DC-96DBC133243E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F75647CA-0D61-4C18-98DC-96DBC133243E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{132AF6AD-5687-4F14-8BFE-A91FF98734DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{132AF6AD-5687-4F14-8BFE-A91FF98734DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{132AF6AD-5687-4F14-8BFE-A91FF98734DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{132AF6AD-5687-4F14-8BFE-A91FF98734DE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
