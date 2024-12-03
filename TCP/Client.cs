@@ -16,4 +16,17 @@ public class Client(TcpClient client)
     var stream = _client.GetStream();
     stream.Write(bytes);
   }
+
+  public async Task HandleResponseFromServer()
+  {
+    var stream = _client.GetStream();
+
+    int byteReadCount;
+    var buffer = new byte[1024];
+    while ((byteReadCount = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length))) > 0)
+    {
+      var receivedData = Encoding.UTF8.GetString(buffer, 0, byteReadCount).TrimEnd('\r', '\n');
+      Console.WriteLine($"From server: {receivedData}");
+    }
+  }
 }
