@@ -111,7 +111,7 @@
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
-      ClientSize = new Size(535, 536);
+      ClientSize = new Size(528, 536);
       Controls.Add(lblStatus);
       Controls.Add(btnConnectToServer);
       Controls.Add(rtbDialogArea);
@@ -119,7 +119,9 @@
       Controls.Add(btnSend);
       Controls.Add(lblChatWithServer);
       Controls.Add(btnMessage);
+      FormBorderStyle = FormBorderStyle.FixedDialog;
       Icon = (Icon)resources.GetObject("$this.Icon");
+      MaximizeBox = false;
       Name = "ClientForm";
       Text = "Client";
       ResumeLayout(false);
