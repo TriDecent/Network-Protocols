@@ -35,6 +35,7 @@
       btnAttach = new Button();
       rtbDialogArea = new RichTextBox();
       btnConnectToServer = new Button();
+      lblStatus = new Label();
       SuspendLayout();
       // 
       // btnMessage
@@ -96,11 +97,22 @@
       btnConnectToServer.Text = "Connect";
       btnConnectToServer.UseVisualStyleBackColor = true;
       // 
+      // lblStatus
+      // 
+      lblStatus.AutoSize = true;
+      lblStatus.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      lblStatus.Location = new Point(14, 506);
+      lblStatus.Name = "lblStatus";
+      lblStatus.Size = new Size(152, 21);
+      lblStatus.TabIndex = 7;
+      lblStatus.Text = "Status: Disconnected";
+      // 
       // ClientForm
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
-      ClientSize = new Size(535, 521);
+      ClientSize = new Size(535, 536);
+      Controls.Add(lblStatus);
       Controls.Add(btnConnectToServer);
       Controls.Add(rtbDialogArea);
       Controls.Add(btnAttach);
@@ -122,5 +134,6 @@
     private Button btnAttach;
     private RichTextBox rtbDialogArea;
     private Button btnConnectToServer;
+    private Label lblStatus;
   }
 }
