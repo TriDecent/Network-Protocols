@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using ChattingApplication.Enums;
 using ChattingApplication.Utils;
 
 namespace ChattingApplication;
@@ -8,6 +9,7 @@ namespace ChattingApplication;
 internal class Client(TcpClient client)
 {
   private TcpClient _client = client;
+  private readonly CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler;
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
@@ -34,6 +36,7 @@ internal class Client(TcpClient client)
     if (!_client.Connected) return;
 
     UpdateState(ClientState.Disconnecting);
+    _cts.Cancel();
     _client.Close();
 
     _client = new TcpClient();
@@ -62,25 +65,36 @@ internal class Client(TcpClient client)
     var stream = _client.GetStream();
 
     var buffer = new byte[OneMB];
-    int bytesReadCount;
 
     using var memoryStream = new MemoryStream();
-    while ((bytesReadCount = await stream.ReadAsync(
-      buffer.AsMemory(0, buffer.Length))) > 0)
+
+    while (!_cts.Token.IsCancellationRequested)
     {
-      await memoryStream.WriteAsync(buffer.AsMemory(0, bytesReadCount));
+      int bytesReadCount;
+      try
+      {
+        bytesReadCount = await stream.ReadAsync(
+            buffer.AsMemory(0, buffer.Length), _cts.Token);
 
-      if (stream.DataAvailable) continue;
+        if (bytesReadCount == 0) break;
 
-      var messageBytes = memoryStream.ToArray();
-      
-      RaiseReceivedMessage((messageBytes,
-        messageBytes.IsImage() ?
-        MessageType.Image :
-        MessageType.Text
-      ));
+        await memoryStream.WriteAsync(
+            buffer.AsMemory(0, bytesReadCount), _cts.Token);
 
-      memoryStream.SetLength(0);
+        if (stream.DataAvailable) continue;
+
+        var messageBytes = memoryStream.ToArray();
+        RaiseReceivedMessage((messageBytes,
+            messageBytes.IsImage() ?
+            MessageType.Image :
+            MessageType.Text));
+
+        memoryStream.SetLength(0);
+      }
+      catch (OperationCanceledException) 
+      {
+        break;
+      }
     }
   }
 
