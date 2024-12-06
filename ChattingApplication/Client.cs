@@ -44,11 +44,32 @@ internal class Client(TcpClient client)
     UpdateState(ClientState.Disconnected);
   }
 
-  public void SendMessage(string message)
+  public async Task SendMessageAsync(string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message);
-    var stream = _client.GetStream();
-    stream.Write(bytes);
+    await SendToClient(_client, bytes);
+  }
+
+  public async Task SendImageAsync(Image image)
+  {
+    var bytes = ImageByteConverter.ImageToBytes(image);
+    await SendToClient(_client, bytes);
+  }
+
+  private async Task SendToClient(TcpClient client, byte[] bytes)
+  {
+    var stream = client.GetStream();
+    try
+    {
+      await stream.WriteAsync(bytes);
+    }
+    catch (IOException ex)
+    {
+      UpdateState(ClientState.Disconnected);
+      _client = new TcpClient();
+      
+      throw new IOException("Connection to server was lost", ex);
+    }
   }
 
   private void UpdateState(ClientState state)
@@ -102,7 +123,7 @@ internal class Client(TcpClient client)
   private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
   {
     object content = message.Type == MessageType.Text
-      ? Encoding.UTF8.GetString(message.Bytes)
+      ? Encoding.UTF8.GetString(message.Bytes).TrimEnd('\r', '\n')
       : message.Bytes;
 
     MessageReceivedEventHandler?.Invoke(
