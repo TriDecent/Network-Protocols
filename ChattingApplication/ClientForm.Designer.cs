@@ -29,22 +29,23 @@
     private void InitializeComponent()
     {
       System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ClientForm));
-      btnMessage = new TextBox();
+      txtMessage = new TextBox();
       lblChatWithServer = new Label();
       btnSend = new Button();
       btnAttach = new Button();
       rtbDialogArea = new RichTextBox();
-      btnConnectToServer = new Button();
+      btnConnectServer = new Button();
       lblStatus = new Label();
+      btnDisconnectServer = new Button();
       SuspendLayout();
       // 
-      // btnMessage
+      // txtMessage
       // 
-      btnMessage.Font = new Font("Segoe UI", 12F);
-      btnMessage.Location = new Point(66, 472);
-      btnMessage.Name = "btnMessage";
-      btnMessage.Size = new Size(378, 29);
-      btnMessage.TabIndex = 0;
+      txtMessage.Font = new Font("Segoe UI", 12F);
+      txtMessage.Location = new Point(68, 471);
+      txtMessage.Name = "txtMessage";
+      txtMessage.Size = new Size(378, 29);
+      txtMessage.TabIndex = 0;
       // 
       // lblChatWithServer
       // 
@@ -65,18 +66,20 @@
       btnSend.TabIndex = 3;
       btnSend.Text = "Send";
       btnSend.UseVisualStyleBackColor = true;
+      btnSend.Click += BtnSend_Click;
       // 
       // btnAttach
       // 
       btnAttach.BackgroundImage = Properties.Resources.attachment_icon;
       btnAttach.BackgroundImageLayout = ImageLayout.Zoom;
-      btnAttach.FlatStyle = FlatStyle.Popup;
+      btnAttach.FlatStyle = FlatStyle.Flat;
       btnAttach.Font = new Font("Segoe UI", 12F);
       btnAttach.Location = new Point(14, 471);
       btnAttach.Name = "btnAttach";
       btnAttach.Size = new Size(48, 29);
       btnAttach.TabIndex = 4;
       btnAttach.UseVisualStyleBackColor = true;
+      btnAttach.Click += BtnAttach_Click;
       // 
       // rtbDialogArea
       // 
@@ -87,15 +90,16 @@
       rtbDialogArea.TabIndex = 5;
       rtbDialogArea.Text = "";
       // 
-      // btnConnectToServer
+      // btnConnectServer
       // 
-      btnConnectToServer.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      btnConnectToServer.Location = new Point(412, 15);
-      btnConnectToServer.Name = "btnConnectToServer";
-      btnConnectToServer.Size = new Size(100, 28);
-      btnConnectToServer.TabIndex = 6;
-      btnConnectToServer.Text = "Connect";
-      btnConnectToServer.UseVisualStyleBackColor = true;
+      btnConnectServer.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnConnectServer.Location = new Point(412, 15);
+      btnConnectServer.Name = "btnConnectServer";
+      btnConnectServer.Size = new Size(100, 28);
+      btnConnectServer.TabIndex = 6;
+      btnConnectServer.Text = "Connect";
+      btnConnectServer.UseVisualStyleBackColor = true;
+      btnConnectServer.Click += BtnConnectToServer_Click;
       // 
       // lblStatus
       // 
@@ -107,18 +111,32 @@
       lblStatus.TabIndex = 7;
       lblStatus.Text = "Status: Disconnected";
       // 
+      // btnDisconnectServer
+      // 
+      btnDisconnectServer.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnDisconnectServer.Location = new Point(412, 15);
+      btnDisconnectServer.Name = "btnDisconnectServer";
+      btnDisconnectServer.Size = new Size(100, 28);
+      btnDisconnectServer.TabIndex = 8;
+      btnDisconnectServer.Text = "Disconnect";
+      btnDisconnectServer.UseVisualStyleBackColor = true;
+      btnDisconnectServer.Visible = false;
+      btnDisconnectServer.Click += BtnDisconnectServer_Click;
+      // 
       // ClientForm
       // 
+      AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(528, 536);
+      Controls.Add(btnDisconnectServer);
       Controls.Add(lblStatus);
-      Controls.Add(btnConnectToServer);
+      Controls.Add(btnConnectServer);
       Controls.Add(rtbDialogArea);
       Controls.Add(btnAttach);
       Controls.Add(btnSend);
       Controls.Add(lblChatWithServer);
-      Controls.Add(btnMessage);
+      Controls.Add(txtMessage);
       FormBorderStyle = FormBorderStyle.FixedDialog;
       Icon = (Icon)resources.GetObject("$this.Icon");
       MaximizeBox = false;
@@ -130,12 +148,13 @@
 
     #endregion
 
-    private TextBox btnMessage;
+    private TextBox txtMessage;
     private Label lblChatWithServer;
     private Button btnSend;
     private Button btnAttach;
     private RichTextBox rtbDialogArea;
-    private Button btnConnectToServer;
+    private Button btnConnectServer;
     private Label lblStatus;
+    private Button btnDisconnectServer;
   }
 }
