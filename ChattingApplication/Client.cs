@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using ChattingApplication.Utils;
 
 namespace ChattingApplication;
 
@@ -8,7 +9,8 @@ internal class Client(TcpClient client)
 {
   private TcpClient _client = client;
   public ClientState State { get; private set; } = ClientState.Disconnected;
-  public EventHandler<StateEventArgs>? StatusEventHandler;
+  public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler;
+  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
 
   public async Task ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -17,6 +19,8 @@ internal class Client(TcpClient client)
       UpdateState(ClientState.Connecting);
       await _client.ConnectAsync(ipEndPoint);
       UpdateState(ClientState.Connected);
+
+      await HandleReceivedMessageAsync();
     }
     catch (SocketException)
     {
@@ -50,11 +54,43 @@ internal class Client(TcpClient client)
   }
 
   private void RaiseChangedState()
-    => StatusEventHandler?.Invoke(this, new StateEventArgs(null, State));
-}
+    => StatusChangedEventHandler?.Invoke(this, new StateChangedEventArgs(null, State));
 
-internal class StateEventArgs(ServerState? serverState, ClientState? clientState) : EventArgs
-{
-  public ServerState? ServerState = serverState;
-  public ClientState? ClientState = clientState;
+  private async Task HandleReceivedMessageAsync()
+  {
+    const int OneMB = 1048576;
+    var stream = _client.GetStream();
+
+    var buffer = new byte[OneMB];
+    int bytesReadCount;
+
+    using var memoryStream = new MemoryStream();
+    while ((bytesReadCount = await stream.ReadAsync(
+      buffer.AsMemory(0, buffer.Length))) > 0)
+    {
+      await memoryStream.WriteAsync(buffer.AsMemory(0, bytesReadCount));
+
+      if (stream.DataAvailable) continue;
+
+      var messageBytes = memoryStream.ToArray();
+      
+      RaiseReceivedMessage((messageBytes,
+        messageBytes.IsImage() ?
+        MessageType.Image :
+        MessageType.Text
+      ));
+
+      memoryStream.SetLength(0);
+    }
+  }
+
+  private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
+  {
+    object content = message.Type == MessageType.Text
+      ? Encoding.UTF8.GetString(message.Bytes)
+      : message.Bytes;
+
+    MessageReceivedEventHandler?.Invoke(
+      this, new MessageReceivedEventArgs(content, message.Type));
+  }
 }
