@@ -63,6 +63,16 @@ namespace ChattingApplication.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap attach_file_off {
+            get {
+                object obj = ResourceManager.GetObject("attach_file_off", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap attachment_icon {
             get {
                 object obj = ResourceManager.GetObject("attachment_icon", resourceCulture);
