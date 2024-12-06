@@ -37,6 +37,7 @@
       btnConnectServer = new Button();
       lblStatus = new Label();
       btnDisconnectServer = new Button();
+      btnDetach = new Button();
       SuspendLayout();
       // 
       // txtMessage
@@ -124,12 +125,27 @@
       btnDisconnectServer.Visible = false;
       btnDisconnectServer.Click += BtnDisconnectServer_Click;
       // 
+      // btnDetach
+      // 
+      btnDetach.BackgroundImage = Properties.Resources.attach_file_off;
+      btnDetach.BackgroundImageLayout = ImageLayout.Zoom;
+      btnDetach.FlatStyle = FlatStyle.Flat;
+      btnDetach.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnDetach.Location = new Point(14, 471);
+      btnDetach.Name = "btnDetach";
+      btnDetach.Size = new Size(48, 31);
+      btnDetach.TabIndex = 9;
+      btnDetach.UseVisualStyleBackColor = true;
+      btnDetach.Visible = false;
+      btnDetach.Click += BtnDetach_Click;
+      // 
       // ClientForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(528, 536);
+      Controls.Add(btnDetach);
       Controls.Add(btnDisconnectServer);
       Controls.Add(lblStatus);
       Controls.Add(btnConnectServer);
@@ -157,5 +173,6 @@
     private Button btnConnectServer;
     private Label lblStatus;
     private Button btnDisconnectServer;
+    private Button btnDetach;
   }
 }
