@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using ChattingApplication.Enums;
+using ChattingApplication.Events;
 using ChattingApplication.Utils;
 
 namespace ChattingApplication
@@ -38,7 +39,7 @@ namespace ChattingApplication
 
       _statusLabel.Text = $"State: {clientState}";
 
-      _connectServerButton.Enabled = clientState != ClientState.Connecting 
+      _connectServerButton.Enabled = clientState != ClientState.Connecting
         && clientState != ClientState.Disconnecting;
       _disconnectServerButton.Enabled = _connectServerButton.Enabled;
 
@@ -127,25 +128,24 @@ namespace ChattingApplication
 
       // Set alignment
       _chatDisplayArea.SelectionAlignment = isOwnMessage ?
-          HorizontalAlignment.Right : HorizontalAlignment.Left;
+        HorizontalAlignment.Right : HorizontalAlignment.Left;
 
       // Add timestamp and sender with appropriate colors
       _chatDisplayArea.SelectionColor = Color.Gray;
       _chatDisplayArea.AppendText($"[{DateTime.Now:HH:mm}] ");
 
-      _chatDisplayArea.SelectionColor = isOwnMessage ? Color.Green : Color.Blue;
+      _chatDisplayArea.SelectionColor = isOwnMessage ?
+        Color.Green : Color.Blue;
       _chatDisplayArea.AppendText($"{sender}: ");
 
       // Add message with different background for own messages
       _chatDisplayArea.SelectionColor = Color.Black;
       _chatDisplayArea.SelectionBackColor = isOwnMessage ?
-          Color.FromArgb(220, 248, 198) : Color.White;
-      _chatDisplayArea.AppendText($"{message}");
+        Color.FromArgb(220, 248, 198) : Color.White;
+      _chatDisplayArea.AppendText($"{message}{Environment.NewLine}");
 
-      // Reset background and add newline
+      // Reset the background color and scroll to the caret.
       _chatDisplayArea.SelectionBackColor = Color.White;
-      _chatDisplayArea.AppendText(Environment.NewLine);
-
       _chatDisplayArea.ScrollToCaret();
     }
 

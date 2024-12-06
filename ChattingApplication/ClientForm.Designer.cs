@@ -86,6 +86,7 @@
       rtbDialogArea.Font = new Font("Segoe UI", 12F);
       rtbDialogArea.Location = new Point(14, 49);
       rtbDialogArea.Name = "rtbDialogArea";
+      rtbDialogArea.ReadOnly = true;
       rtbDialogArea.Size = new Size(498, 416);
       rtbDialogArea.TabIndex = 5;
       rtbDialogArea.Text = "";

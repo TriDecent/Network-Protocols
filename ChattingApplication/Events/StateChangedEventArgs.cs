@@ -1,4 +1,6 @@
-namespace ChattingApplication;
+using ChattingApplication.Enums;
+
+namespace ChattingApplication.Events;
 
 internal class StateChangedEventArgs(
     ServerState? serverState, ClientState? clientState) : EventArgs

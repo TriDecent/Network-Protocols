@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
+using ChattingApplication.Events;
 using ChattingApplication.Utils;
 
 namespace ChattingApplication;
@@ -91,7 +92,7 @@ internal class Client(TcpClient client)
 
         memoryStream.SetLength(0);
       }
-      catch (OperationCanceledException) 
+      catch (OperationCanceledException)
       {
         break;
       }
