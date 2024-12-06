@@ -12,10 +12,13 @@ namespace ChattingApplication
     private readonly Button _disconnectServerButton;
     private readonly Button _sendMessageButton;
     private readonly Button _attachItemButton;
+    private readonly Button _detachItemButton;
     private readonly RichTextBox _chatDisplayArea;
     private readonly TextBox _messageTextBox;
     private readonly Label _statusLabel;
     private readonly Client _client = new(new TcpClient());
+
+    private bool _isSendingImage = false;
 
     public ClientForm()
     {
@@ -25,6 +28,7 @@ namespace ChattingApplication
       _disconnectServerButton = btnDisconnectServer;
       _sendMessageButton = btnSend;
       _attachItemButton = btnAttach;
+      _detachItemButton = btnDetach;
       _messageTextBox = txtMessage;
       _chatDisplayArea = rtbDialogArea;
       _statusLabel = lblStatus;
@@ -70,23 +74,18 @@ namespace ChattingApplication
       }
       catch (SocketException ex)
       {
-        string errorMessage;
-        switch (ex.SocketErrorCode)
+        string errorMessage = ex.SocketErrorCode switch
         {
-          case SocketError.ConnectionRefused:
-            errorMessage = "Could not connect to the server. " +
-              "Please try again later.";
-            break;
-          case SocketError.HostUnreachable:
-          case SocketError.NetworkUnreachable:
-            errorMessage = "The server is not reachable. " +
-              "Please check your internet connection and try again.";
-            break;
-          default:
-            errorMessage = "An unexpected error occurred. " +
-              "Please try again later.";
-            break;
-        }
+          SocketError.ConnectionRefused =>
+          "Could not connect to the server. " + "Please try again later.",
+
+          SocketError.HostUnreachable or SocketError.NetworkUnreachable =>
+            "The server is not reachable. " +
+              "Please check your internet connection and try again.",
+
+          _ => "An unexpected error occurred. " +
+            "Please try again later.",
+        };
         MessageBox.Show(errorMessage, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
       }
     }
@@ -94,7 +93,7 @@ namespace ChattingApplication
     private void BtnDisconnectServer_Click(object sender, EventArgs e)
       => _client.DisconnectFromServer();
 
-    private void BtnSend_Click(object sender, EventArgs e)
+    private async void BtnSend_Click(object sender, EventArgs e)
     {
       if (_client.State != ClientState.Connected) return;
 
@@ -102,23 +101,62 @@ namespace ChattingApplication
 
       if (message == string.Empty) return;
 
-      _client.SendMessage(message);
+      try
+      {
+        if (_isSendingImage)
+        {
+          var filePath = _messageTextBox.Text;
+          var image = Image.FromFile(filePath);
 
-      DisplayMessage("You", message, true);
+          await _client.SendImageAsync(image);
+
+          return;
+        }
+
+        await _client.SendMessageAsync(message);
+
+        DisplayMessage("You", message, true);
+
+        ClearUserMessageInput();
+      }
+      catch (IOException ex)
+      {
+        MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+      }
     }
 
     private void BtnAttach_Click(object sender, EventArgs e)
     {
-      var openFileDialog = new OpenFileDialog
+      using var openFileDialog = new OpenFileDialog
       {
         Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif"
       };
 
       if (openFileDialog.ShowDialog() == DialogResult.OK)
       {
-        string filePath = openFileDialog.FileName;
+        _messageTextBox.Text = openFileDialog.FileName;
+        _isSendingImage = true;
+        _messageTextBox.Enabled = false;
+        ToggleAttachDetachButtons();
       }
     }
+
+    private void BtnDetach_Click(object sender, EventArgs e)
+    {
+      _isSendingImage = false;
+      _messageTextBox.Enabled = true;
+      ClearUserMessageInput();
+      ToggleAttachDetachButtons();
+    }
+
+    private void ToggleAttachDetachButtons()
+    {
+      _attachItemButton.Visible = !_isSendingImage;
+      _detachItemButton.Visible = _isSendingImage;
+    }
+
+    private void ClearUserMessageInput()
+      => _messageTextBox.Text = "";
 
     private void DisplayMessage(string sender, string message, bool isOwnMessage = false)
     {
