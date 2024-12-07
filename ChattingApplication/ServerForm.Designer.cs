@@ -30,8 +30,8 @@
     {
       System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ServerForm));
       btnDetach = new Button();
-      btnClose = new Button();
-      lblStatus = new Label();
+      btnStop = new Button();
+      lblState = new Label();
       btnStart = new Button();
       rtbDialogArea = new RichTextBox();
       btnAttach = new Button();
@@ -53,26 +53,27 @@
       btnDetach.UseVisualStyleBackColor = true;
       btnDetach.Visible = false;
       // 
-      // btnClose
+      // btnStop
       // 
-      btnClose.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      btnClose.Location = new Point(410, 10);
-      btnClose.Name = "btnClose";
-      btnClose.Size = new Size(100, 28);
-      btnClose.TabIndex = 17;
-      btnClose.Text = "Close";
-      btnClose.UseVisualStyleBackColor = true;
-      btnClose.Visible = false;
+      btnStop.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnStop.Location = new Point(410, 10);
+      btnStop.Name = "btnStop";
+      btnStop.Size = new Size(100, 28);
+      btnStop.TabIndex = 17;
+      btnStop.Text = "Stop";
+      btnStop.UseVisualStyleBackColor = true;
+      btnStop.Visible = false;
+      btnStop.Click += BtnClose_Click;
       // 
       // lblStatus
       // 
-      lblStatus.AutoSize = true;
-      lblStatus.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      lblStatus.Location = new Point(12, 501);
-      lblStatus.Name = "lblStatus";
-      lblStatus.Size = new Size(106, 21);
-      lblStatus.TabIndex = 16;
-      lblStatus.Text = "Status: Closed";
+      lblState.AutoSize = true;
+      lblState.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      lblState.Location = new Point(12, 501);
+      lblState.Name = "lblStatus";
+      lblState.Size = new Size(116, 21);
+      lblState.TabIndex = 16;
+      lblState.Text = "Status: Stopped";
       // 
       // btnStart
       // 
@@ -83,6 +84,7 @@
       btnStart.TabIndex = 15;
       btnStart.Text = "Start";
       btnStart.UseVisualStyleBackColor = true;
+      btnStart.Click += BtnStart_Click;
       // 
       // rtbDialogArea
       // 
@@ -140,8 +142,8 @@
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(522, 527);
       Controls.Add(btnDetach);
-      Controls.Add(btnClose);
-      Controls.Add(lblStatus);
+      Controls.Add(btnStop);
+      Controls.Add(lblState);
       Controls.Add(btnStart);
       Controls.Add(rtbDialogArea);
       Controls.Add(btnAttach);
@@ -158,8 +160,8 @@
     #endregion
 
     private Button btnDetach;
-    private Button btnClose;
-    private Label lblStatus;
+    private Button btnStop;
+    private Label lblState;
     private Button btnStart;
     private RichTextBox rtbDialogArea;
     private Button btnAttach;
