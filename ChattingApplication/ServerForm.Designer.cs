@@ -46,12 +46,13 @@
       btnDetach.BackgroundImageLayout = ImageLayout.Zoom;
       btnDetach.FlatStyle = FlatStyle.Flat;
       btnDetach.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      btnDetach.Location = new Point(12, 466);
+      btnDetach.Location = new Point(12, 465);
       btnDetach.Name = "btnDetach";
       btnDetach.Size = new Size(48, 31);
       btnDetach.TabIndex = 18;
       btnDetach.UseVisualStyleBackColor = true;
       btnDetach.Visible = false;
+      btnDetach.Click += BtnDetach_Click;
       // 
       // btnStop
       // 
@@ -107,6 +108,7 @@
       btnAttach.Size = new Size(48, 29);
       btnAttach.TabIndex = 13;
       btnAttach.UseVisualStyleBackColor = true;
+      btnAttach.Click += BtnAttach_Click;
       // 
       // btnSend
       // 

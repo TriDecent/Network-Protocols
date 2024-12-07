@@ -20,6 +20,8 @@ public partial class ServerForm : Form
 
   private readonly Server _server;
 
+  private bool _isSendingImage;
+
   public ServerForm()
   {
     InitializeComponent();
@@ -82,14 +84,55 @@ public partial class ServerForm : Form
   private async void BtnSend_ClickAsync(object sender, EventArgs e)
   {
     var message = _messageTextbox.Text.Trim();
-
     if (string.IsNullOrEmpty(message)) return;
 
-    await _server.BroadcastMessageToAllClients(message);
-
-    _chatRenderer.DisplayMessage("Server", message, true);
+    var sendTask = _isSendingImage ? SendImageAsync(message) : SendMessageAsync(message);
+    await sendTask;
 
     ClearServerMessageInput();
+  }
+
+  private async Task SendImageAsync(string filePath)
+  {
+    var image = Image.FromFile(filePath);
+    await _server.BroadcastImageToAllClients(image);
+    _chatRenderer.DisplayImage("Server", image, true);
+  }
+
+  private async Task SendMessageAsync(string message)
+  {
+    await _server.BroadcastMessageToAllClients(message);
+    _chatRenderer.DisplayMessage("Server", message, true);
+  }
+
+  private void BtnAttach_Click(object sender, EventArgs e)
+  {
+    var openFileDialog = new OpenFileDialog
+    {
+      Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif"
+    };
+
+    if (openFileDialog.ShowDialog() == DialogResult.OK)
+    {
+      _messageTextbox.Text = openFileDialog.FileName;
+      _isSendingImage = true;
+      _messageTextbox.Enabled = false;
+      ToggleAttachDetachButtons();
+    }
+  }
+
+  private void BtnDetach_Click(object sender, EventArgs e)
+  {
+    _isSendingImage = false;
+    ClearServerMessageInput();
+    ToggleAttachDetachButtons();
+    _messageTextbox.Enabled = true;
+  }
+
+  private void ToggleAttachDetachButtons()
+  {
+    _attachButton.Visible = !_isSendingImage;
+    _detachButton.Visible = _isSendingImage;
   }
 
   private void ClearServerMessageInput() => _messageTextbox.Text = string.Empty;
