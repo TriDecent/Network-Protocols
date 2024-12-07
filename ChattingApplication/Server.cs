@@ -66,7 +66,19 @@ internal class Server(TcpListener server)
   public async Task BroadcastMessageToAllClients(string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message);
-    
+
+    await BroadcastToAllClients(bytes);
+  }
+
+  public async Task BroadcastImageToAllClients(Image image)
+  {
+    var bytes = ImageByteConverter.ImageToBytes(image);
+
+    await BroadcastToAllClients(bytes);
+  }
+
+  private async Task BroadcastToAllClients(byte[] bytes)
+  {
     List<TcpClient> copiedClients;
 
     lock (_clients)
@@ -81,7 +93,7 @@ internal class Server(TcpListener server)
     }
   }
 
-  private async Task HandleClient(TcpClient client) 
+  private async Task HandleClient(TcpClient client)
     => await HandleClientMessagesAsync(client);
 
   private async Task HandleClientMessagesAsync(TcpClient client)
