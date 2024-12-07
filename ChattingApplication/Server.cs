@@ -3,6 +3,7 @@ using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
+using Microsoft.VisualBasic;
 
 namespace ChattingApplication;
 
@@ -10,6 +11,7 @@ internal class Server(TcpListener server)
 {
   private readonly TcpListener _server = server;
   private readonly CancellationTokenSource _cts = new();
+  private readonly List<TcpClient> _clients = [];
   private bool _isRunning = false;
   public ServerState State { get; private set; } = ServerState.Stopped;
 
@@ -26,6 +28,8 @@ internal class Server(TcpListener server)
     UpdateState(ServerState.Listening);
   }
 
+  // TODO: make two versions of this, stop and clear all data about clients
+  // version two: only stop for listening but still keep the data about clients
   public void Stop()
   {
     if (!_isRunning) return;
@@ -50,14 +54,35 @@ internal class Server(TcpListener server)
     {
       var client = await _server.AcceptTcpClientAsync();
 
+      lock (_clients)
+      {
+        _clients.Add(client);
+      }
+
       _ = HandleClient(client);
     }
   }
 
-  private async Task HandleClient(TcpClient client)
+  public async Task BroadcastMessageToAllClients(string message)
   {
-    await HandleClientMessagesAsync(client);
+    var bytes = Encoding.UTF8.GetBytes(message);
+    
+    List<TcpClient> copiedClients;
+
+    lock (_clients)
+    {
+      copiedClients = [.. _clients];
+    }
+
+    foreach (var client in copiedClients)
+    {
+      var stream = client.GetStream();
+      await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _cts.Token);
+    }
   }
+
+  private async Task HandleClient(TcpClient client) 
+    => await HandleClientMessagesAsync(client);
 
   private async Task HandleClientMessagesAsync(TcpClient client)
   {
