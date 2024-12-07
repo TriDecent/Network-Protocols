@@ -59,7 +59,8 @@ namespace ChattingApplication
         return;
       }
 
-      DisplayImage("Server", (byte[])e.Content, false);
+      var bytes = e.Content as byte[] ?? [];
+      DisplayImage("Server", bytes.BytesToImage(), false);
     }
 
     private async void BtnConnectToServer_Click(object sender, EventArgs e)
@@ -109,6 +110,8 @@ namespace ChattingApplication
           var image = Image.FromFile(filePath);
 
           await _client.SendImageAsync(image);
+
+          DisplayImage("You", image, true);
 
           return;
         }
@@ -193,10 +196,8 @@ namespace ChattingApplication
       _chatDisplayArea.ScrollToCaret();
     }
 
-    private void DisplayImage(string sender, byte[] bytes, bool isOwnMessage = false)
+    private void DisplayImage(string sender, Image image, bool isOwnMessage = false)
     {
-      var image = bytes.BytesToImage();
-
       // Resize image if needed
       if (image.Width > _chatDisplayArea.ClientSize.Width - 40)
       {
