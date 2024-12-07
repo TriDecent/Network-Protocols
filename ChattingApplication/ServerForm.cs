@@ -74,12 +74,13 @@ public partial class ServerForm : Form
 
   private async void BtnStart_Click(object sender, EventArgs e)
   {
-    _server.Start();
-    await _server.HandleMultipleConnections();
+    _server.StartListeningForConnections();
+
+    await _server.HandleIncomingConnectionsAsync();
   }
 
-  private void BtnClose_Click(object sender, EventArgs e)
-    => _server.Stop();
+  private void BtnStop_Click(object sender, EventArgs e)
+    => _server.StopListeningForConnections();
 
   private async void BtnSend_ClickAsync(object sender, EventArgs e)
   {

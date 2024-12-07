@@ -64,7 +64,7 @@
       btnStop.Text = "Stop";
       btnStop.UseVisualStyleBackColor = true;
       btnStop.Visible = false;
-      btnStop.Click += BtnClose_Click;
+      btnStop.Click += BtnStop_Click;
       // 
       // lblState
       // 

@@ -4,11 +4,15 @@ internal enum ServerState
 {
   Stopped,
 
-  Starting,
-
   Listening,
 
+  Shutdown,
+
+  Starting,
+
   Failed,
+
+  Stopping,
 
   ShuttingDown
 }
