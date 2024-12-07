@@ -17,6 +17,7 @@ namespace ChattingApplication
     private readonly TextBox _messageTextBox;
     private readonly Label _statusLabel;
     private readonly Client _client = new(new TcpClient());
+    private readonly ChatMessageRenderer _chatRenderer;
 
     private bool _isSendingImage = false;
 
@@ -32,6 +33,8 @@ namespace ChattingApplication
       _messageTextBox = txtMessage;
       _chatDisplayArea = rtbDialogArea;
       _statusLabel = lblStatus;
+
+      _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
       _client.StatusChangedEventHandler += OnStatusChanged;
       _client.MessageReceivedEventHandler += OnMessageReceived;
@@ -55,12 +58,12 @@ namespace ChattingApplication
     {
       if (e.Type == MessageType.Text)
       {
-        DisplayMessage("Server", (string)e.Content);
+        _chatRenderer.DisplayMessage("Server", (string)e.Content);
         return;
       }
 
       var bytes = e.Content as byte[] ?? [];
-      DisplayImage("Server", bytes.BytesToImage(), false);
+      _chatRenderer.DisplayImage("Server", bytes.BytesToImage(), false);
     }
 
     private async void BtnConnectToServer_Click(object sender, EventArgs e)
@@ -111,14 +114,14 @@ namespace ChattingApplication
 
           await _client.SendImageAsync(image);
 
-          DisplayImage("You", image, true);
+          _chatRenderer.DisplayImage("You", image, true);
 
           return;
         }
 
         await _client.SendMessageAsync(message);
 
-        DisplayMessage("You", message, true);
+        _chatRenderer.DisplayMessage("You", message, true);
 
         ClearUserMessageInput();
       }
@@ -160,89 +163,5 @@ namespace ChattingApplication
 
     private void ClearUserMessageInput()
       => _messageTextBox.Text = "";
-
-    private void DisplayMessage(string sender, string message, bool isOwnMessage = false)
-    {
-      // Create a new paragraph
-      _chatDisplayArea.SelectionStart = _chatDisplayArea.TextLength;
-      _chatDisplayArea.SelectionLength = 0;
-
-      // Set alignment and padding
-      _chatDisplayArea.SelectionAlignment = isOwnMessage ?
-          HorizontalAlignment.Right : HorizontalAlignment.Left;
-
-      // Add padding
-      _chatDisplayArea.SelectionIndent = 10; // Left padding
-      _chatDisplayArea.SelectionRightIndent = 10; // Right padding
-
-      // Add timestamp and sender with appropriate colors
-      _chatDisplayArea.SelectionColor = Color.Gray;
-      _chatDisplayArea.AppendText($"[{DateTime.Now:HH:mm}] ");
-
-      _chatDisplayArea.SelectionColor = isOwnMessage ?
-          Color.Green : Color.Blue;
-      _chatDisplayArea.AppendText($"{sender}: ");
-
-      // Add message with background
-      _chatDisplayArea.SelectionColor = Color.Black;
-      _chatDisplayArea.SelectionBackColor = isOwnMessage ?
-          Color.FromArgb(220, 248, 198) : Color.FromArgb(200, 235, 255);
-      _chatDisplayArea.AppendText($"{message}{Environment.NewLine}{Environment.NewLine}");
-
-      // Reset padding and caret
-      _chatDisplayArea.SelectionIndent = 0;
-      _chatDisplayArea.SelectionRightIndent = 0;
-      _chatDisplayArea.SelectionStart = _chatDisplayArea.TextLength;
-      _chatDisplayArea.ScrollToCaret();
-    }
-
-    private void DisplayImage(string sender, Image image, bool isOwnMessage = false)
-    {
-      // Resize image if needed
-      if (image.Width > _chatDisplayArea.ClientSize.Width - 40)
-      {
-        float ratio = (float)(_chatDisplayArea.ClientSize.Width - 40) / image.Width;
-        int newWidth = (int)(image.Width * ratio);
-        int newHeight = (int)(image.Height * ratio);
-        image = new Bitmap(image, new Size(newWidth, newHeight));
-      }
-
-      // Start new paragraph
-      _chatDisplayArea.SelectionStart = _chatDisplayArea.TextLength;
-      _chatDisplayArea.SelectionLength = 0;
-
-      // Add padding
-      _chatDisplayArea.SelectionIndent = isOwnMessage ? 50 : 10; // Padding left for sent/received
-      _chatDisplayArea.SelectionRightIndent = isOwnMessage ? 10 : 50; // Padding right for sent/received
-
-      // Set alignment for the header and image
-      _chatDisplayArea.SelectionAlignment = isOwnMessage ?
-          HorizontalAlignment.Right : HorizontalAlignment.Left;
-
-      // Add header
-      _chatDisplayArea.SelectionColor = Color.Gray;
-      _chatDisplayArea.AppendText($"[{DateTime.Now:HH:mm}] ");
-      _chatDisplayArea.SelectionColor = isOwnMessage ? Color.Green : Color.Blue;
-      _chatDisplayArea.AppendText($"{sender}{Environment.NewLine}");
-
-      // Insert image
-      _chatDisplayArea.ReadOnly = false;
-      Clipboard.SetImage(image);
-      _chatDisplayArea.Paste();
-      _chatDisplayArea.ReadOnly = true;
-
-      // Add "Sent an image" text
-      _chatDisplayArea.AppendText(Environment.NewLine); // Add spacing
-      _chatDisplayArea.SelectionColor = Color.BlueViolet;
-      _chatDisplayArea.SelectionBackColor = Color.Transparent; // Transparent background
-      _chatDisplayArea.AppendText("Sent an image");
-      _chatDisplayArea.AppendText(Environment.NewLine + Environment.NewLine); // Add additional spacing
-
-      // Reset padding and alignment
-      _chatDisplayArea.SelectionIndent = 0;
-      _chatDisplayArea.SelectionRightIndent = 0;
-      _chatDisplayArea.SelectionAlignment = HorizontalAlignment.Left; // Reset alignment to default
-      _chatDisplayArea.ScrollToCaret();
-    }
   }
 }
