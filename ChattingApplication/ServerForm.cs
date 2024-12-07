@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
@@ -13,6 +14,7 @@ public partial class ServerForm : Form
   private readonly Button _attachButton, _detachButton;
   private readonly Label _stateLabel;
   private readonly RichTextBox _chatDisplayArea;
+  private readonly TextBox _messageTextbox;
 
   private readonly ChatMessageRenderer _chatRenderer;
 
@@ -29,6 +31,7 @@ public partial class ServerForm : Form
     _attachButton = btnAttach;
     _detachButton = btnDetach;
     _chatDisplayArea = rtbDialogArea;
+    _messageTextbox = txtMessage;
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
@@ -75,4 +78,19 @@ public partial class ServerForm : Form
 
   private void BtnClose_Click(object sender, EventArgs e)
     => _server.Stop();
+
+  private async void BtnSend_ClickAsync(object sender, EventArgs e)
+  {
+    var message = _messageTextbox.Text.Trim();
+
+    if (string.IsNullOrEmpty(message)) return;
+
+    await _server.BroadcastMessageToAllClients(message);
+
+    _chatRenderer.DisplayMessage("Server", message, true);
+
+    ClearServerMessageInput();
+  }
+
+  private void ClearServerMessageInput() => _messageTextbox.Text = string.Empty;
 }

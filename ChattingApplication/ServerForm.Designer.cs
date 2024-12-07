@@ -65,12 +65,12 @@
       btnStop.Visible = false;
       btnStop.Click += BtnClose_Click;
       // 
-      // lblStatus
+      // lblState
       // 
       lblState.AutoSize = true;
       lblState.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
       lblState.Location = new Point(12, 501);
-      lblState.Name = "lblStatus";
+      lblState.Name = "lblState";
       lblState.Size = new Size(116, 21);
       lblState.TabIndex = 16;
       lblState.Text = "Status: Stopped";
@@ -117,6 +117,7 @@
       btnSend.TabIndex = 12;
       btnSend.Text = "Send";
       btnSend.UseVisualStyleBackColor = true;
+      btnSend.Click += BtnSend_ClickAsync;
       // 
       // lblServer
       // 
@@ -138,6 +139,7 @@
       // 
       // ServerForm
       // 
+      AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(522, 527);
