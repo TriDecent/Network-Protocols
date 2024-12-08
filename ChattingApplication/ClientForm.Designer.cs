@@ -30,7 +30,7 @@
     {
       System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ClientForm));
       txtMessage = new TextBox();
-      lblChatWithServer = new Label();
+      lblServerIP = new Label();
       btnSend = new Button();
       btnAttach = new Button();
       rtbDialogArea = new RichTextBox();
@@ -38,6 +38,9 @@
       lblState = new Label();
       btnDisconnectServer = new Button();
       btnDetach = new Button();
+      txtServerIP = new TextBox();
+      txtServerPort = new TextBox();
+      lblServerPort = new Label();
       SuspendLayout();
       // 
       // txtMessage
@@ -48,15 +51,15 @@
       txtMessage.Size = new Size(378, 29);
       txtMessage.TabIndex = 0;
       // 
-      // lblChatWithServer
+      // lblServerIP
       // 
-      lblChatWithServer.AutoSize = true;
-      lblChatWithServer.Font = new Font("Segoe UI", 12F);
-      lblChatWithServer.Location = new Point(14, 19);
-      lblChatWithServer.Name = "lblChatWithServer";
-      lblChatWithServer.Size = new Size(128, 21);
-      lblChatWithServer.TabIndex = 1;
-      lblChatWithServer.Text = "Chat With Server";
+      lblServerIP.AutoSize = true;
+      lblServerIP.Font = new Font("Segoe UI", 12F);
+      lblServerIP.Location = new Point(14, 19);
+      lblServerIP.Name = "lblServerIP";
+      lblServerIP.Size = new Size(23, 21);
+      lblServerIP.TabIndex = 1;
+      lblServerIP.Text = "IP";
       // 
       // btnSend
       // 
@@ -94,6 +97,7 @@
       // 
       // btnConnectServer
       // 
+      btnConnectServer.Enabled = false;
       btnConnectServer.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
       btnConnectServer.Location = new Point(412, 15);
       btnConnectServer.Name = "btnConnectServer";
@@ -103,12 +107,12 @@
       btnConnectServer.UseVisualStyleBackColor = true;
       btnConnectServer.Click += BtnConnectToServer_Click;
       // 
-      // lblStatus
+      // lblState
       // 
       lblState.AutoSize = true;
       lblState.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
       lblState.Location = new Point(14, 506);
-      lblState.Name = "lblStatus";
+      lblState.Name = "lblState";
       lblState.Size = new Size(152, 21);
       lblState.TabIndex = 7;
       lblState.Text = "Status: Disconnected";
@@ -116,7 +120,7 @@
       // btnDisconnectServer
       // 
       btnDisconnectServer.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      btnDisconnectServer.Location = new Point(412, 15);
+      btnDisconnectServer.Location = new Point(412, 14);
       btnDisconnectServer.Name = "btnDisconnectServer";
       btnDisconnectServer.Size = new Size(100, 28);
       btnDisconnectServer.TabIndex = 8;
@@ -133,18 +137,46 @@
       btnDetach.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
       btnDetach.Location = new Point(14, 471);
       btnDetach.Name = "btnDetach";
-      btnDetach.Size = new Size(48, 31);
+      btnDetach.Size = new Size(48, 29);
       btnDetach.TabIndex = 9;
       btnDetach.UseVisualStyleBackColor = true;
       btnDetach.Visible = false;
       btnDetach.Click += BtnDetach_Click;
+      // 
+      // txtServerIP
+      // 
+      txtServerIP.Font = new Font("Segoe UI", 12F);
+      txtServerIP.Location = new Point(43, 14);
+      txtServerIP.Name = "txtServerIP";
+      txtServerIP.Size = new Size(123, 29);
+      txtServerIP.TabIndex = 10;
+      // 
+      // txtServerPort
+      // 
+      txtServerPort.Font = new Font("Segoe UI", 12F);
+      txtServerPort.Location = new Point(216, 14);
+      txtServerPort.Name = "txtServerPort";
+      txtServerPort.Size = new Size(100, 29);
+      txtServerPort.TabIndex = 11;
+      // 
+      // lblServerPort
+      // 
+      lblServerPort.AutoSize = true;
+      lblServerPort.Font = new Font("Segoe UI", 12F);
+      lblServerPort.Location = new Point(172, 19);
+      lblServerPort.Name = "lblServerPort";
+      lblServerPort.Size = new Size(38, 21);
+      lblServerPort.TabIndex = 1;
+      lblServerPort.Text = "Port";
       // 
       // ClientForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
-      ClientSize = new Size(528, 536);
+      ClientSize = new Size(528, 535);
+      Controls.Add(txtServerPort);
+      Controls.Add(txtServerIP);
       Controls.Add(btnDetach);
       Controls.Add(btnDisconnectServer);
       Controls.Add(lblState);
@@ -152,7 +184,8 @@
       Controls.Add(rtbDialogArea);
       Controls.Add(btnAttach);
       Controls.Add(btnSend);
-      Controls.Add(lblChatWithServer);
+      Controls.Add(lblServerPort);
+      Controls.Add(lblServerIP);
       Controls.Add(txtMessage);
       FormBorderStyle = FormBorderStyle.FixedDialog;
       Icon = (Icon)resources.GetObject("$this.Icon");
@@ -166,7 +199,7 @@
     #endregion
 
     private TextBox txtMessage;
-    private Label lblChatWithServer;
+    private Label lblServerIP;
     private Button btnSend;
     private Button btnAttach;
     private RichTextBox rtbDialogArea;
@@ -174,5 +207,8 @@
     private Label lblState;
     private Button btnDisconnectServer;
     private Button btnDetach;
+    private TextBox txtServerIP;
+    private TextBox txtServerPort;
+    private Label lblServerPort;
   }
 }

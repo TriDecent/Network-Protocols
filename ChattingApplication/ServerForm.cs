@@ -21,6 +21,9 @@ public partial class ServerForm : Form
 
   private bool _isSendingImage;
 
+  private readonly IPEndPoint _serverEndPoint =
+    new(IPAddress.Parse("192.168.2.215"), 1211);
+
   public ServerForm()
   {
     InitializeComponent();
@@ -36,7 +39,8 @@ public partial class ServerForm : Form
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
-    using var tcpListener = new TcpListener(IPAddress.Any, 1211);
+    using var tcpListener = new TcpListener(_serverEndPoint);
+
     _server = new Server(tcpListener);
 
     _server.MessageReceivedEventHandler += OnMessageReceived;
@@ -48,17 +52,16 @@ public partial class ServerForm : Form
   private void OnStateChanged(object? sender, StateChangedEventArgs e)
   {
     var serverState = e.ServerState;
+    _stateLabel.Text = serverState == ServerState.Listening
+      ? $"State: {serverState} at {_serverEndPoint.Address}:{_serverEndPoint.Port}"
+      : $"State: {serverState}";
 
-    _stateLabel.Text = $"State: {serverState}";
-
-    _startServerButton.Enabled = serverState != ServerState.Starting
-      && serverState != ServerState.ShuttingDown;
-
-    _stopServerButton.Enabled = _startServerButton.Enabled;
-
-    _startServerButton.Visible = serverState != ServerState.Listening;
-    _stopServerButton.Visible = !_startServerButton.Visible;
-    _shutdownButton.Visible = _stopServerButton.Visible;
+    var isServerActive = serverState == ServerState.Listening;
+    _startServerButton.Enabled = !isServerActive;
+    _stopServerButton.Enabled = isServerActive;
+    _startServerButton.Visible = !isServerActive;
+    _stopServerButton.Visible = isServerActive;
+    _shutdownButton.Visible = isServerActive;
   }
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
