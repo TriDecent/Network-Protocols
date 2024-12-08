@@ -30,8 +30,6 @@ internal class Server(TcpListener server)
     UpdateState(ServerState.Listening);
   }
 
-  // TODO: make two versions of this, stop and clear all data about clients
-  // version two: only stop for listening but still keep the data about clients
   public void StopListeningForConnections()
   {
     if (!_isListening) return;
@@ -43,28 +41,32 @@ internal class Server(TcpListener server)
     UpdateState(ServerState.Stopped);
   }
 
-  // public void TerminateAllConnections()
-  // {
-  //   if (!_isListening) return;
+  public void ShutdownAllConnections()
+  {
+    if (!_isListening) return;
 
-  //   UpdateState(ServerState.ShuttingDown);
-  //   _server.Stop();
-  //   _listeningCTS.Cancel();
-  //   _isListening = false;
+    UpdateState(ServerState.ShuttingDown);
+    _server.Stop();
+    _listeningCTS.Cancel();
+    _shutdownCTS.Cancel();
 
-  //   List<TcpClient> copiedClients = [.. _clients];
+    _shutdownCTS = new();
+    _isListening = false;
 
-  //   lock (_clients)
-  //   {
-  //     foreach (var client in copiedClients)
-  //     {
-  //       client.Close();
-  //     }
+    List<TcpClient> copiedClients = [.. _clients];
 
-  //     _clients.Clear();
-  //   }
-  //   UpdateState(ServerState.Stopped);
-  // }
+    lock (_clients)
+    {
+      foreach (var client in copiedClients)
+      {
+        client.Close();
+      }
+
+      _clients.Clear();
+    }
+
+    UpdateState(ServerState.Shutdown);
+  }
 
   private void UpdateState(ServerState state)
   {
@@ -105,7 +107,7 @@ internal class Server(TcpListener server)
     await BroadcastToAllClients(bytes);
   }
 
-  public async Task BroadcastImageToAllClients(Image image)
+  public async Task BroadcastImageToAllClientsAsync(Image image)
   {
     var bytes = ImageByteConverter.ImageToBytes(image);
 
@@ -114,18 +116,40 @@ internal class Server(TcpListener server)
 
   private async Task BroadcastToAllClients(byte[] bytes)
   {
-    List<TcpClient> copiedClients;
+    var copiedClients = new List<TcpClient>();
+    var disconnectedClients = new List<TcpClient>();
 
     lock (_clients)
     {
       copiedClients = [.. _clients];
     }
 
-    foreach (var client in copiedClients)
+    var broadcastTasks = _clients.Select(async client =>
     {
       var stream = client.GetStream();
-      await stream.WriteAsync(bytes.AsMemory(0, bytes.Length),
-        _shutdownCTS.Token);
+
+      try
+      {
+        await stream.WriteAsync(bytes.AsMemory(0, bytes.Length),
+          _shutdownCTS.Token);
+      }
+      catch (IOException)
+      {
+        lock (disconnectedClients)
+        {
+          disconnectedClients.Add(client);
+        }
+        client.Close();
+      }
+    });
+
+    await Task.WhenAll(broadcastTasks);
+
+    if (disconnectedClients.Count == 0) return;
+
+    lock (_clients)
+    {
+      _clients.ForEach(client => client.Close());
     }
   }
 
