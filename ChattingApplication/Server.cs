@@ -144,6 +144,8 @@ internal class Server(TcpListener server)
       var bytesReadCount = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length),
         _shutdownCTS.Token);
 
+      if (bytesReadCount == 0) break;
+
       await memoryStream.WriteAsync(buffer.AsMemory(0, bytesReadCount),
         _shutdownCTS.Token);
 

@@ -10,7 +10,6 @@ public partial class ClientForm : Form
 {
   private readonly Button _connectServerButton;
   private readonly Button _disconnectServerButton;
-  private readonly Button _sendMessageButton;
   private readonly Button _attachItemButton;
   private readonly Button _detachItemButton;
   private readonly RichTextBox _chatDisplayArea;
@@ -27,7 +26,6 @@ public partial class ClientForm : Form
 
     _connectServerButton = btnConnectServer;
     _disconnectServerButton = btnDisconnectServer;
-    _sendMessageButton = btnSend;
     _attachItemButton = btnAttach;
     _detachItemButton = btnDetach;
     _messageTextBox = txtMessage;
@@ -48,7 +46,7 @@ public partial class ClientForm : Form
 
     _connectServerButton.Enabled = clientState != ClientState.Connecting
       && clientState != ClientState.Disconnecting;
-      
+
     _disconnectServerButton.Enabled = _connectServerButton.Enabled;
 
     _connectServerButton.Visible = clientState != ClientState.Connected;
@@ -69,7 +67,7 @@ public partial class ClientForm : Form
 
   private async void BtnConnectToServer_Click(object sender, EventArgs e)
   {
-    var ip = IPAddress.Parse("192.168.84.128");
+    var ip = IPAddress.Parse("192.168.2.215");
     var port = 1211;
     var ipEndPoint = new IPEndPoint(ip, port);
 
