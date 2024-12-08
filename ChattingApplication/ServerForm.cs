@@ -9,7 +9,7 @@ namespace ChattingApplication;
 
 public partial class ServerForm : Form
 {
-  private readonly Button _startServerButton, _stopServerButton;
+  private readonly Button _startServerButton, _stopServerButton, _shutdownButton;
   private readonly Button _sendMessageButton;
   private readonly Button _attachButton, _detachButton;
   private readonly Label _stateLabel;
@@ -28,6 +28,7 @@ public partial class ServerForm : Form
 
     _startServerButton = btnStart;
     _stopServerButton = btnStop;
+    _shutdownButton = btnShutDown;
     _sendMessageButton = btnSend;
     _stateLabel = lblState;
     _attachButton = btnAttach;
@@ -57,6 +58,7 @@ public partial class ServerForm : Form
 
     _startServerButton.Visible = serverState != ServerState.Listening;
     _stopServerButton.Visible = !_startServerButton.Visible;
+    _shutdownButton.Visible = _stopServerButton.Visible;
   }
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
@@ -82,6 +84,9 @@ public partial class ServerForm : Form
   private void BtnStop_Click(object sender, EventArgs e)
     => _server.StopListeningForConnections();
 
+  private void BtnShutDown_Click(object sender, EventArgs e)
+    => _server.ShutdownAllConnections();
+
   private async void BtnSend_ClickAsync(object sender, EventArgs e)
   {
     var message = _messageTextbox.Text.Trim();
@@ -96,7 +101,7 @@ public partial class ServerForm : Form
   private async Task SendImageAsync(string filePath)
   {
     var image = Image.FromFile(filePath);
-    await _server.BroadcastImageToAllClients(image);
+    await _server.BroadcastImageToAllClientsAsync(image);
     _chatRenderer.DisplayImage("Server", image, true);
   }
 

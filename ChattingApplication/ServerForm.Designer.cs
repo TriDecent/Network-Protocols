@@ -38,6 +38,7 @@
       btnSend = new Button();
       lblServer = new Label();
       txtMessage = new TextBox();
+      btnShutDown = new Button();
       SuspendLayout();
       // 
       // btnDetach
@@ -139,12 +140,25 @@
       txtMessage.Size = new Size(378, 29);
       txtMessage.TabIndex = 10;
       // 
+      // btnShutDown
+      // 
+      btnShutDown.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnShutDown.Location = new Point(291, 10);
+      btnShutDown.Name = "btnShutDown";
+      btnShutDown.Size = new Size(100, 28);
+      btnShutDown.TabIndex = 20;
+      btnShutDown.Text = "Shut down";
+      btnShutDown.UseVisualStyleBackColor = true;
+      btnShutDown.Visible = false;
+      btnShutDown.Click += BtnShutDown_Click;
+      // 
       // ServerForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(522, 527);
+      Controls.Add(btnShutDown);
       Controls.Add(btnDetach);
       Controls.Add(btnStop);
       Controls.Add(lblState);
@@ -172,5 +186,6 @@
     private Button btnSend;
     private Label lblServer;
     private TextBox txtMessage;
+    private Button btnShutDown;
   }
 }
