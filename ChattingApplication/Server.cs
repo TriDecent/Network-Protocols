@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
@@ -6,13 +7,14 @@ using ChattingApplication.Utils;
 
 namespace ChattingApplication;
 
-internal class Server(TcpListener server)
+internal class Server(TcpListener server) : IDisposable
 {
   private readonly TcpListener _server = server;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<TcpClient> _clients = [];
   private bool _isListening = false;
+  private bool _isRunning = false;
 
   public ServerState State { get; private set; } = ServerState.Shutdown;
 
@@ -27,6 +29,7 @@ internal class Server(TcpListener server)
     UpdateState(ServerState.Starting);
     _server.Start();
     _isListening = true;
+    _isRunning = true;
     UpdateState(ServerState.Listening);
   }
 
@@ -43,7 +46,7 @@ internal class Server(TcpListener server)
 
   public void ShutdownAllConnections()
   {
-    if (!_isListening) return;
+    if (!_isRunning) return;
 
     UpdateState(ServerState.ShuttingDown);
     _server.Stop();
@@ -52,6 +55,7 @@ internal class Server(TcpListener server)
 
     _shutdownCTS = new();
     _isListening = false;
+    _isRunning = false;
 
     List<TcpClient> copiedClients = [.. _clients];
 
@@ -113,43 +117,40 @@ internal class Server(TcpListener server)
 
     await BroadcastToAllClients(bytes);
   }
-
   private async Task BroadcastToAllClients(byte[] bytes)
   {
     var copiedClients = new List<TcpClient>();
-    var disconnectedClients = new List<TcpClient>();
+    var disconnectedClients = new ConcurrentBag<TcpClient>();
 
     lock (_clients)
     {
       copiedClients = [.. _clients];
     }
 
-    var broadcastTasks = _clients.Select(async client =>
+    var broadcastTasks = copiedClients.Select(async client =>
     {
-      var stream = client.GetStream();
-
       try
       {
-        await stream.WriteAsync(bytes.AsMemory(0, bytes.Length),
-          _shutdownCTS.Token);
+        var stream = client.GetStream();
+        await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _shutdownCTS.Token);
       }
-      catch (IOException)
+      catch (IOException) // means clients got disconnected
       {
-        lock (disconnectedClients)
-        {
-          disconnectedClients.Add(client);
-        }
+        disconnectedClients.Add(client);
         client.Close();
       }
     });
 
     await Task.WhenAll(broadcastTasks);
 
-    if (disconnectedClients.Count == 0) return;
+    if (disconnectedClients.IsEmpty) return;
 
     lock (_clients)
     {
-      _clients.ForEach(client => client.Close());
+      foreach (var client in disconnectedClients)
+      {
+        _clients.Remove(client);
+      }
     }
   }
 
@@ -194,5 +195,21 @@ internal class Server(TcpListener server)
 
     MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(content, message.Type));
+  }
+
+  public void Dispose()
+  {
+    _shutdownCTS.Cancel();
+    _listeningCTS.Cancel();
+
+    _shutdownCTS.Dispose();
+    _listeningCTS.Dispose();
+
+    foreach (var client in _clients)
+    {
+      client.Close();
+    }
+
+    _clients.Clear();
   }
 }
