@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
@@ -14,6 +15,7 @@ public partial class ClientForm : Form
   private readonly Button _detachItemButton;
   private readonly RichTextBox _chatDisplayArea;
   private readonly TextBox _messageTextBox;
+  private readonly TextBox _serverIPTextBox, _serverPortTextBox;
   private readonly Label _stateLabel;
   private readonly Client _client = new(new TcpClient());
   private readonly ChatMessageRenderer _chatRenderer;
@@ -31,6 +33,8 @@ public partial class ClientForm : Form
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
     _stateLabel = lblState;
+    _serverIPTextBox = txtServerIP;
+    _serverPortTextBox = txtServerPort;
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
@@ -38,6 +42,27 @@ public partial class ClientForm : Form
     _client.MessageReceivedEventHandler += OnMessageReceived;
 
     FormClosing += (s, e) => _client?.Dispose();
+
+    _serverPortTextBox.KeyPress += (s, e) =>
+    {
+      if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+      {
+        e.Handled = true;
+      }
+    };
+
+    _serverPortTextBox.TextChanged += (s, e) =>
+      EnableConnectButtonBasedOnServerInput();
+
+    _serverIPTextBox.TextChanged += (s, e) =>
+      EnableConnectButtonBasedOnServerInput();
+  }
+
+  private void EnableConnectButtonBasedOnServerInput()
+  {
+    _connectServerButton.Enabled =
+       IPAddressValidator.IsValidIP(_serverIPTextBox.Text.Trim()) &&
+       IPAddressValidator.IsValidPort(_serverPortTextBox.Text.Trim());
   }
 
   private void OnStatusChanged(object? sender, StateChangedEventArgs e)
@@ -46,8 +71,13 @@ public partial class ClientForm : Form
 
     _stateLabel.Text = $"State: {clientState}";
 
+    bool canEditServer = clientState == ClientState.Disconnected ||
+      clientState == ClientState.Failed;
+    _serverIPTextBox.Enabled = canEditServer;
+    _serverPortTextBox.Enabled = canEditServer;
+
     _connectServerButton.Enabled = clientState != ClientState.Connecting
-      && clientState != ClientState.Disconnecting;
+        && clientState != ClientState.Disconnecting;
 
     _disconnectServerButton.Enabled = _connectServerButton.Enabled;
 
@@ -69,30 +99,15 @@ public partial class ClientForm : Form
 
   private async void BtnConnectToServer_Click(object sender, EventArgs e)
   {
-    var ip = IPAddress.Parse("192.168.2.215");
-    var port = 1211;
+    var ip = IPAddress.Parse(_serverIPTextBox.Text);
+    var port = int.Parse(_serverPortTextBox.Text);
     var ipEndPoint = new IPEndPoint(ip, port);
 
-    try
-    {
-      await _client.ConnectServerAsync(ipEndPoint);
-    }
-    catch (SocketException ex)
-    {
-      string errorMessage = ex.SocketErrorCode switch
-      {
-        SocketError.ConnectionRefused =>
-        "Could not connect to the server. " + "Please try again later.",
+    var establishConnectionTask = await _client.ConnectServerAsync(ipEndPoint);
 
-        SocketError.HostUnreachable or SocketError.NetworkUnreachable =>
-          "The server is not reachable. " +
-            "Please check your internet connection and try again.",
+    if (establishConnectionTask.Success) return;
 
-        _ => "An unexpected error occurred. " +
-          "Please try again later.",
-      };
-      MessageBox.Show(errorMessage, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-    }
+    MessageBox.Show(establishConnectionTask.ErrorMessage, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
   }
 
   private void BtnDisconnectServer_Click(object sender, EventArgs e)
@@ -108,28 +123,33 @@ public partial class ClientForm : Form
 
     try
     {
-      if (_isSendingImage)
-      {
-        var filePath = _messageTextBox.Text;
-        var image = Image.FromFile(filePath);
+      var sendTask = _isSendingImage ?
+        SendImageAsync(message) :
+        SendMessageAsync(message);
 
-        await _client.SendImageAsync(image);
-
-        _chatRenderer.DisplayImage("You", image, true);
-
-        return;
-      }
-
-      await _client.SendMessageAsync(message);
-
-      _chatRenderer.DisplayMessage("You", message, true);
-
-      ClearUserMessageInput();
+      await sendTask;
     }
     catch (IOException ex)
     {
       MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
+    finally
+    {
+      ClearUserMessageInput();
+    }
+  }
+
+  private async Task SendImageAsync(string filePath)
+  {
+    var image = Image.FromFile(filePath);
+    await _client.SendImageAsync(image);
+    _chatRenderer.DisplayImage("Server", image, true);
+  }
+
+  private async Task SendMessageAsync(string message)
+  {
+    await _client.SendMessageAsync(message);
+    _chatRenderer.DisplayMessage("Server", message, true);
   }
 
   private void BtnAttach_Click(object sender, EventArgs e)
