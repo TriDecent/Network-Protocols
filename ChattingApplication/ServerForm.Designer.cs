@@ -168,7 +168,9 @@
       Controls.Add(btnSend);
       Controls.Add(lblServer);
       Controls.Add(txtMessage);
+      FormBorderStyle = FormBorderStyle.FixedSingle;
       Icon = (Icon)resources.GetObject("$this.Icon");
+      MaximizeBox = false;
       Name = "ServerForm";
       Text = "Server";
       ResumeLayout(false);
