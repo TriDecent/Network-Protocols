@@ -7,7 +7,7 @@ using ChattingApplication.Utils;
 
 namespace ChattingApplication;
 
-internal class Client(TcpClient client)
+internal class Client(TcpClient client) : IDisposable
 {
   private TcpClient _client = client;
   private readonly CancellationTokenSource _cts = new();
@@ -67,7 +67,7 @@ internal class Client(TcpClient client)
     {
       UpdateState(ClientState.Disconnected);
       _client = new TcpClient();
-      
+
       throw new IOException("Connection to server was lost", ex);
     }
   }
@@ -128,5 +128,11 @@ internal class Client(TcpClient client)
 
     MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(content, message.Type));
+  }
+
+  public void Dispose()
+  {
+    _cts.Cancel();
+    _cts.Dispose();
   }
 }
