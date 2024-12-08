@@ -10,7 +10,7 @@ namespace ChattingApplication;
 internal class Client(TcpClient client) : IDisposable
 {
   private TcpClient _client = client;
-  private readonly CancellationTokenSource _cts = new();
+  private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler;
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
@@ -22,13 +22,20 @@ internal class Client(TcpClient client) : IDisposable
       UpdateState(ClientState.Connecting);
       await _client.ConnectAsync(ipEndPoint);
       UpdateState(ClientState.Connected);
-
-      await HandleReceivedMessageAsync();
     }
     catch (SocketException)
     {
       UpdateState(ClientState.Failed);
       throw;
+    }
+
+    try
+    {
+      await HandleReceivedMessageAsync();
+    }
+    catch (OperationCanceledException)
+    {
+      // Do nothing, valid cancellation
     }
   }
 
@@ -37,10 +44,13 @@ internal class Client(TcpClient client) : IDisposable
     if (!_client.Connected) return;
 
     UpdateState(ClientState.Disconnecting);
-    _cts.Cancel();
-    _client.Close();
 
+    _cts.Cancel();
+    _cts = new();
+
+    _client.Close();
     _client = new TcpClient();
+
     UpdateState(ClientState.Disconnected);
   }
 
@@ -61,7 +71,7 @@ internal class Client(TcpClient client) : IDisposable
     var stream = client.GetStream();
     try
     {
-      await stream.WriteAsync(bytes);
+      await stream.WriteAsync(bytes, _cts.Token);
     }
     catch (IOException ex)
     {
@@ -89,34 +99,32 @@ internal class Client(TcpClient client) : IDisposable
     var buffer = new byte[OneMB];
 
     using var memoryStream = new MemoryStream();
-
     while (!_cts.Token.IsCancellationRequested)
     {
       int bytesReadCount;
-      try
+
+      bytesReadCount = await stream.ReadAsync(
+        buffer.AsMemory(0, buffer.Length), _cts.Token);
+
+      if (bytesReadCount == 0)
       {
-        bytesReadCount = await stream.ReadAsync(
-            buffer.AsMemory(0, buffer.Length), _cts.Token);
+        DisconnectFromServer();
 
-        if (bytesReadCount == 0) break;
-
-        await memoryStream.WriteAsync(
-            buffer.AsMemory(0, bytesReadCount), _cts.Token);
-
-        if (stream.DataAvailable) continue;
-
-        var messageBytes = memoryStream.ToArray();
-        RaiseReceivedMessage((messageBytes,
-            messageBytes.IsImage() ?
-            MessageType.Image :
-            MessageType.Text));
-
-        memoryStream.SetLength(0);
-      }
-      catch (OperationCanceledException)
-      {
         break;
-      }
+      };
+
+      await memoryStream.WriteAsync(
+        buffer.AsMemory(0, bytesReadCount), _cts.Token);
+
+      if (stream.DataAvailable) continue;
+
+      var messageBytes = memoryStream.ToArray();
+      RaiseReceivedMessage((messageBytes,
+          messageBytes.IsImage() ?
+          MessageType.Image :
+          MessageType.Text));
+
+      memoryStream.SetLength(0);
     }
   }
 
@@ -134,5 +142,6 @@ internal class Client(TcpClient client) : IDisposable
   {
     _cts.Cancel();
     _cts.Dispose();
+    _client.Dispose();
   }
 }
