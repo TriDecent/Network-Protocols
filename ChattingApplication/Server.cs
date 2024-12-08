@@ -25,7 +25,6 @@ internal class Server(TcpListener server) : IDisposable
   {
     if (_isListening) return;
 
-    _listeningCTS = new CancellationTokenSource();
     UpdateState(ServerState.Starting);
     _server.Start();
     _isListening = true;
@@ -39,8 +38,12 @@ internal class Server(TcpListener server) : IDisposable
 
     UpdateState(ServerState.Stopping);
     _server.Stop();
+
     _listeningCTS.Cancel();
+    _listeningCTS = new();
+
     _isListening = false;
+
     UpdateState(ServerState.Stopped);
   }
 
@@ -54,6 +57,8 @@ internal class Server(TcpListener server) : IDisposable
     _shutdownCTS.Cancel();
 
     _shutdownCTS = new();
+    _listeningCTS = new();
+
     _isListening = false;
     _isRunning = false;
 
@@ -117,6 +122,7 @@ internal class Server(TcpListener server) : IDisposable
 
     await BroadcastToAllClients(bytes);
   }
+
   private async Task BroadcastToAllClients(byte[] bytes)
   {
     var copiedClients = new List<TcpClient>();
@@ -145,12 +151,9 @@ internal class Server(TcpListener server) : IDisposable
 
     if (disconnectedClients.IsEmpty) return;
 
-    lock (_clients)
+    foreach (var client in disconnectedClients)
     {
-      foreach (var client in disconnectedClients)
-      {
-        _clients.Remove(client);
-      }
+      RemoveClient(client);
     }
   }
 
@@ -169,7 +172,11 @@ internal class Server(TcpListener server) : IDisposable
       var bytesReadCount = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length),
         _shutdownCTS.Token);
 
-      if (bytesReadCount == 0) break;
+      if (bytesReadCount == 0)
+      {
+        RemoveClient(client);
+        break;
+      };
 
       await memoryStream.WriteAsync(buffer.AsMemory(0, bytesReadCount),
         _shutdownCTS.Token);
@@ -187,6 +194,15 @@ internal class Server(TcpListener server) : IDisposable
     }
   }
 
+  private void RemoveClient(TcpClient client)
+  {
+    lock (_clients)
+    {
+      _clients.Remove(client);
+      client.Close();
+    }
+  }
+
   private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
   {
     object content = message.Type == MessageType.Text
@@ -199,11 +215,7 @@ internal class Server(TcpListener server) : IDisposable
 
   public void Dispose()
   {
-    _shutdownCTS.Cancel();
-    _listeningCTS.Cancel();
-
-    _shutdownCTS.Dispose();
-    _listeningCTS.Dispose();
+    ShutdownAllConnections();
 
     foreach (var client in _clients)
     {
@@ -211,5 +223,6 @@ internal class Server(TcpListener server) : IDisposable
     }
 
     _clients.Clear();
+    _server.Dispose();
   }
 }
