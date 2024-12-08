@@ -10,7 +10,6 @@ namespace ChattingApplication;
 public partial class ServerForm : Form
 {
   private readonly Button _startServerButton, _stopServerButton, _shutdownButton;
-  private readonly Button _sendMessageButton;
   private readonly Button _attachButton, _detachButton;
   private readonly Label _stateLabel;
   private readonly RichTextBox _chatDisplayArea;
@@ -29,7 +28,6 @@ public partial class ServerForm : Form
     _startServerButton = btnStart;
     _stopServerButton = btnStop;
     _shutdownButton = btnShutDown;
-    _sendMessageButton = btnSend;
     _stateLabel = lblState;
     _attachButton = btnAttach;
     _detachButton = btnDetach;
@@ -38,11 +36,13 @@ public partial class ServerForm : Form
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
-    var tcpListener = new TcpListener(IPAddress.Any, 1211);
+    using var tcpListener = new TcpListener(IPAddress.Any, 1211);
     _server = new Server(tcpListener);
 
     _server.MessageReceivedEventHandler += OnMessageReceived;
     _server.StateChangedEventHandler += OnStateChanged;
+
+    FormClosing += (s, e) => _server?.Dispose();
   }
 
   private void OnStateChanged(object? sender, StateChangedEventArgs e)

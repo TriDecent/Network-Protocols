@@ -36,6 +36,8 @@ public partial class ClientForm : Form
 
     _client.StatusChangedEventHandler += OnStatusChanged;
     _client.MessageReceivedEventHandler += OnMessageReceived;
+
+    FormClosing += (s, e) => _client?.Dispose();
   }
 
   private void OnStatusChanged(object? sender, StateChangedEventArgs e)
