@@ -15,27 +15,29 @@ internal class Client(TcpClient client) : IDisposable
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler;
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
 
-  public async Task ConnectServerAsync(IPEndPoint ipEndPoint)
+  public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
     try
     {
       UpdateState(ClientState.Connecting);
       await _client.ConnectAsync(ipEndPoint);
       UpdateState(ClientState.Connected);
+
+      _ = HandleReceivedMessageAsync().ContinueWith(cancelledTask =>
+      {
+        // Do nothing, valid cancellation
+      }, TaskContinuationOptions.OnlyOnCanceled);
+
+      return new ConnectionResult { Success = true };
     }
-    catch (SocketException)
+    catch (SocketException ex)
     {
       UpdateState(ClientState.Failed);
-      throw;
-    }
-
-    try
-    {
-      await HandleReceivedMessageAsync();
-    }
-    catch (OperationCanceledException)
-    {
-      // Do nothing, valid cancellation
+      return new ConnectionResult
+      {
+        Success = false,
+        ErrorMessage = GetSocketErrorMessage(ex.SocketErrorCode)
+      };
     }
   }
 
@@ -64,6 +66,13 @@ internal class Client(TcpClient client) : IDisposable
   {
     var bytes = ImageByteConverter.ImageToBytes(image);
     await SendToClient(_client, bytes);
+  }
+
+  public void Dispose()
+  {
+    _cts.Cancel();
+    _cts.Dispose();
+    _client.Dispose();
   }
 
   private async Task SendToClient(TcpClient client, byte[] bytes)
@@ -138,10 +147,20 @@ internal class Client(TcpClient client) : IDisposable
       this, new MessageReceivedEventArgs(content, message.Type));
   }
 
-  public void Dispose()
+  private static string GetSocketErrorMessage(SocketError errorCode) => errorCode switch
   {
-    _cts.Cancel();
-    _cts.Dispose();
-    _client.Dispose();
+    SocketError.ConnectionRefused =>
+        "Could not connect to the server. Please try again later.",
+    SocketError.TimedOut =>
+        "Connection attempt timed out. The server is not responding.",
+    SocketError.HostUnreachable or SocketError.NetworkUnreachable =>
+        "The server is not reachable. Please check your internet connection.",
+    _ => "An unexpected error occurred. Please try again later."
+  };
+
+  internal class ConnectionResult
+  {
+    public bool Success { get; init; }
+    public string? ErrorMessage { get; init; }
   }
 }
