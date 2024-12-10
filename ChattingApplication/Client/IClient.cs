@@ -9,14 +9,12 @@ public interface IClient : IDisposable
 {
   Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint);
   void DisconnectFromServer();
-  Task SendTextAsync(string message);
-  Task SendImageAsync(Image image);
+  Task SendMessageAsync(Models.Message message);
   void UpdateName(string newName);
-  ClientDetails ClientDetails { get; }
+  ClientInfo ClientDetails { get; }
   ClientState State { get; }
   EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
   EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
-
 
   public class ConnectionResult
   {
