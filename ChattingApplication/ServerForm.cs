@@ -1,9 +1,7 @@
-﻿using System.Net;
-using System.Net.Sockets;
-using System.Text;
+﻿using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
-using ChattingApplication.Server;
+using ChattingApplication.Models;
 using ChattingApplication.Utils;
 
 namespace ChattingApplication;
@@ -66,15 +64,15 @@ public partial class ServerForm : Form
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
-    if (e.Type == MessageType.Image)
+    var messageOwner = e.Message.Client.Name;
+
+    if (e.Message.Type == MessageType.Image)
     {
-      var bytes = e.Content as byte[] ?? [];
-      _chatRenderer.DisplayImage("Client", bytes.BytesToImage(), false);
+      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage(), false);
       return;
     }
 
-    var message = e.Content as string ?? "";
-    _chatRenderer.DisplayMessage("Client", message, false);
+    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
   }
 
   private async void BtnStart_Click(object sender, EventArgs e)
@@ -92,26 +90,42 @@ public partial class ServerForm : Form
 
   private async void BtnSend_ClickAsync(object sender, EventArgs e)
   {
-    var message = _messageTextbox.Text.Trim();
-    if (string.IsNullOrEmpty(message)) return;
+    var messageOrFilePath = _messageTextbox.Text.Trim();
+    if (string.IsNullOrEmpty(messageOrFilePath)) return;
 
-    var sendTask = _isSendingImage ? SendImageAsync(message) : SendMessageAsync(message);
-    await sendTask;
+    var broadcastTask = _isSendingImage ?
+      BroadcastImageAsync(messageOrFilePath) :
+      BroadcastMessageAsync(messageOrFilePath);
+    await broadcastTask;
 
+    Action displayingFunc = _isSendingImage ?
+      () => _chatRenderer.DisplayImage("Server", Image.FromFile(messageOrFilePath), true) :
+      () => _chatRenderer.DisplayMessage("Server", messageOrFilePath, true);
+
+    displayingFunc();
     ClearServerMessageInput();
   }
 
-  private async Task SendImageAsync(string filePath)
+  private async Task BroadcastMessageAsync(string content)
   {
-    var image = Image.FromFile(filePath);
-    await _server.BroadcastImageToAllClientsAsync(image);
-    _chatRenderer.DisplayImage("Server", image, true);
+    var bytes = Encoding.UTF8.GetBytes(content);
+    await BroadcastMessageAsync(bytes, MessageType.Text);
   }
 
-  private async Task SendMessageAsync(string message)
+  private async Task BroadcastImageAsync(string filePath)
   {
-    await _server.BroadcastTextToAllClientsAsync(message);
-    _chatRenderer.DisplayMessage("Server", message, true);
+    var image = Image.FromFile(filePath);
+    var bytes = ImageByteConverter.ImageToBytes(image);
+
+    await BroadcastMessageAsync(bytes, MessageType.Image);
+  }
+
+  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType)
+  {
+    var clientInfo = new ClientInfo("Server");
+    var message = new Models.Message(clientInfo, content, messageType);
+
+    await _server.BroadcastMessageToAllClientsAsync(message);
   }
 
   private void BtnAttach_Click(object sender, EventArgs e)
