@@ -3,8 +3,8 @@ using ChattingApplication.Enums;
 namespace ChattingApplication.Events;
 
 public class MessageReceivedEventArgs(
-  object content, MessageType type) : EventArgs
+  Models.Message message, MessageType type) : EventArgs
 {
-  public object Content { get; } = content;
+  public Models.Message Message { get; } = message;
   public MessageType Type { get; } = type;
 }
