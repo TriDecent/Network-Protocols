@@ -10,8 +10,7 @@ public interface IServer : IDisposable
   void StopListeningForConnections();
   void ShutdownAllConnections();
   Task HandleIncomingConnectionsAsync();
-  Task BroadcastTextToAllClientsAsync(string message);
-  Task BroadcastImageToAllClientsAsync(Image image);
+  Task BroadcastMessageToAllClientsAsync(Models.Message message);
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   int ConnectedClients { get; }

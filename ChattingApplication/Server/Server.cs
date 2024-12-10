@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
-using ChattingApplication.Utils;
 
 namespace ChattingApplication.Server;
 
@@ -93,27 +93,23 @@ public class Server(TcpListener server) : IServer
     }
   }
 
-  public async Task BroadcastTextToAllClientsAsync(string message)
+  public async Task BroadcastMessageToAllClientsAsync(Models.Message message)
   {
-    var bytes = Encoding.UTF8.GetBytes(message);
+    var jsonMessage = JsonSerializer.Serialize(message)!;
+    var bytes = Encoding.UTF8.GetBytes(jsonMessage);
 
-    await BroadcastToAllClients(bytes);
+    await BroadcastToClientsCoreAsync(bytes);
   }
 
-  public async Task BroadcastImageToAllClientsAsync(Image image)
+  public async Task BroadcastMessageToClientsExceptAsync(Models.Message message, TcpClient excludedClient)
   {
-    var bytes = ImageByteConverter.ImageToBytes(image);
+    var jsonMessage = JsonSerializer.Serialize(message)!;
+    var bytes = Encoding.UTF8.GetBytes(jsonMessage);
 
-    await BroadcastToAllClients(bytes);
+    await BroadcastToClientsCoreAsync(bytes, excludedClient);
   }
 
-  private async Task BroadcastToAllClients(byte[] bytes)
-    => await BroadcastToClientsCore(bytes);
-
-  private async Task BroadcastToAllExcept(byte[] bytes, TcpClient excludedClient)
-    => await BroadcastToClientsCore(bytes, excludedClient);
-
-  private async Task BroadcastToClientsCore(byte[] bytes, TcpClient? excludedClient = null)
+  private async Task BroadcastToClientsCoreAsync(byte[] bytes, TcpClient? excludedClient = null)
   {
     var copiedClients = new List<TcpClient>();
     var disconnectedClients = new ConcurrentBag<TcpClient>();
@@ -176,12 +172,11 @@ public class Server(TcpListener server) : IServer
 
       var messageBytes = memoryStream.ToArray();
 
-      RaiseReceivedMessage((messageBytes,
-        messageBytes.IsImage() ?
-        MessageType.Image :
-        MessageType.Text));
+      var message = JsonSerializer.Deserialize<Models.Message>(messageBytes)!;
 
-      await BroadcastToAllExcept(messageBytes, client);
+      RaiseReceivedMessage(message);
+
+      await BroadcastMessageToClientsExceptAsync(message, client);
 
       memoryStream.SetLength(0);
     }
@@ -228,18 +223,12 @@ public class Server(TcpListener server) : IServer
   private void RaiseChangedState()
     => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
 
-  private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
-  {
-    object content = message.Type == MessageType.Text
-      ? Encoding.UTF8.GetString(message.Bytes).TrimEnd('\r', '\n')
-      : message.Bytes;
-
-    MessageReceivedEventHandler?.Invoke(
-      this, new MessageReceivedEventArgs(content, message.Type));
-  }
+  private void RaiseReceivedMessage(Models.Message message)
+    => MessageReceivedEventHandler?.Invoke(
+      this, new MessageReceivedEventArgs(message, message.Type));
 
   private void RaiseChangedConnectedClients()
-    => ClientsChangedEventHandler?.Invoke(this, ConnectedClients);
+  => ClientsChangedEventHandler?.Invoke(this, ConnectedClients);
 
   public void Dispose()
   {
