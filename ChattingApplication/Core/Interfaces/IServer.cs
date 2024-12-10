@@ -1,8 +1,8 @@
 using System.Net;
-using ChattingApplication.Enums;
-using ChattingApplication.Events;
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
 
-namespace ChattingApplication.Server;
+namespace ChattingApplication.Core.Interfaces;
 
 public interface IServer : IDisposable
 {

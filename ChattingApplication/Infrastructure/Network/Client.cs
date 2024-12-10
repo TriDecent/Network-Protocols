@@ -2,12 +2,13 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using ChattingApplication.Enums;
-using ChattingApplication.Events;
-using ChattingApplication.Models;
-using static ChattingApplication.Client.IClient;
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
+using static ChattingApplication.Core.Interfaces.IClient;
 
-namespace ChattingApplication.Client;
+namespace ChattingApplication.Infrastructure.Network;
 
 public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 {
@@ -62,7 +63,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 
   public void UpdateName(string newName) => _clientDetails = _clientDetails with { Name = newName };
 
-  public async Task SendMessageAsync(Models.Message message)
+  public async Task SendMessageAsync(Core.Models.Message message)
   {
     var jsonMessage = JsonSerializer.Serialize(message);
     var bytes = Encoding.UTF8.GetBytes(jsonMessage);
@@ -88,7 +89,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 
   private void UpdateState(ClientState state)
   {
-    State = state ;
+    State = state;
     RaiseChangedState();
   }
 
@@ -124,7 +125,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 
       var messageBytes = memoryStream.ToArray();
 
-      var message = JsonSerializer.Deserialize<Models.Message>(messageBytes)!;
+      var message = JsonSerializer.Deserialize<Core.Models.Message>(messageBytes)!;
 
       RaiseReceivedMessage(message);
 
@@ -132,7 +133,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
     }
   }
 
-  private void RaiseReceivedMessage(Models.Message message)
+  private void RaiseReceivedMessage(Core.Models.Message message)
     => MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 

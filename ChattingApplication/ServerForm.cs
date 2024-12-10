@@ -1,8 +1,9 @@
 ﻿using System.Text;
-using ChattingApplication.Enums;
-using ChattingApplication.Events;
-using ChattingApplication.Models;
-using ChattingApplication.Utils;
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Common.Utils;
+using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network;
 
 namespace ChattingApplication;
 
@@ -17,11 +18,11 @@ public partial class ServerForm : Form
 
   private readonly ChatMessageRenderer _chatRenderer;
 
-  private readonly Server.Server _server; // only for better performance
+  private readonly Server _server; // only for better performance
 
   private bool _isSendingImage;
 
-  public ServerForm(Server.Server server)
+  public ServerForm(Server server)
   {
     InitializeComponent();
 
@@ -123,7 +124,7 @@ public partial class ServerForm : Form
   private async Task BroadcastMessageAsync(byte[] content, MessageType messageType)
   {
     var clientInfo = new ClientInfo("Server");
-    var message = new Models.Message(clientInfo, content, messageType);
+    var message = new Core.Models.Message(clientInfo, content, messageType);
 
     await _server.BroadcastMessageToAllClientsAsync(message);
   }

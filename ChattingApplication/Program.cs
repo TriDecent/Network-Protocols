@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
-using ChattingApplication.Models;
+using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network;
 
 namespace ChattingApplication
 {
@@ -25,9 +26,9 @@ namespace ChattingApplication
       var account2 = new ClientInfo("");
       var account3 = new ClientInfo("");
 
-      var client1 = new Client.Client(tcpClient1, account1);  // not use using, let form handle life cycle
-      var client2 = new Client.Client(tcpClient2, account2);  // not use using, let form handle life cycle
-      var client3 = new Client.Client(tcpClient3, account3);  // not use using, let form handle life cycle
+      var client1 = new Client(tcpClient1, account1);  // not use using, let form handle life cycle
+      var client2 = new Client(tcpClient2, account2);  // not use using, let form handle life cycle
+      var client3 = new Client(tcpClient3, account3);  // not use using, let form handle life cycle
 
       var clientForm1 = new ClientForm(client1);
       var clientForm2 = new ClientForm(client2);
@@ -35,7 +36,7 @@ namespace ChattingApplication
 
       var ipEndPoint = new IPEndPoint(IPAddress.Parse("192.168.2.215"), 1211);
       using var tcpListener = new TcpListener(ipEndPoint);
-      var server = new Server.Server(tcpListener);  // not use using, let form handle life cycle
+      var server = new Server(tcpListener);  // not use using, let form handle life cycle
 
       var serverForm = new ServerForm(server);
 

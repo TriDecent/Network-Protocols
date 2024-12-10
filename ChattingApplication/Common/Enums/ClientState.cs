@@ -1,4 +1,4 @@
-namespace ChattingApplication.Enums;
+namespace ChattingApplication.Common.Enums;
 
 public enum ClientState
 {

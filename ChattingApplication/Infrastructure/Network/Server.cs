@@ -3,10 +3,11 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using ChattingApplication.Enums;
-using ChattingApplication.Events;
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Interfaces;
 
-namespace ChattingApplication.Server;
+namespace ChattingApplication.Infrastructure.Network;
 
 public class Server(TcpListener server) : IServer
 {
@@ -93,7 +94,7 @@ public class Server(TcpListener server) : IServer
     }
   }
 
-  public async Task BroadcastMessageToAllClientsAsync(Models.Message message)
+  public async Task BroadcastMessageToAllClientsAsync(Core.Models.Message message)
   {
     var jsonMessage = JsonSerializer.Serialize(message)!;
     var bytes = Encoding.UTF8.GetBytes(jsonMessage);
@@ -101,7 +102,7 @@ public class Server(TcpListener server) : IServer
     await BroadcastToClientsCoreAsync(bytes);
   }
 
-  public async Task BroadcastMessageToClientsExceptAsync(Models.Message message, TcpClient excludedClient)
+  public async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, TcpClient excludedClient)
   {
     var jsonMessage = JsonSerializer.Serialize(message)!;
     var bytes = Encoding.UTF8.GetBytes(jsonMessage);
@@ -172,7 +173,7 @@ public class Server(TcpListener server) : IServer
 
       var messageBytes = memoryStream.ToArray();
 
-      var message = JsonSerializer.Deserialize<Models.Message>(messageBytes)!;
+      var message = JsonSerializer.Deserialize<Core.Models.Message>(messageBytes)!;
 
       RaiseReceivedMessage(message);
 
@@ -223,7 +224,7 @@ public class Server(TcpListener server) : IServer
   private void RaiseChangedState()
     => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
 
-  private void RaiseReceivedMessage(Models.Message message)
+  private void RaiseReceivedMessage(Core.Models.Message message)
     => MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 

@@ -1,9 +1,9 @@
 using System.Net;
-using ChattingApplication.Enums;
-using ChattingApplication.Events;
-using ChattingApplication.Models;
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Models;
 
-namespace ChattingApplication.Client;
+namespace ChattingApplication.Core.Interfaces;
 
 public interface IClient : IDisposable
 {

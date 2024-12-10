@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace ChattingApplication.Utils;
+namespace ChattingApplication.Common.Utils;
 
 internal static partial class IPAddressValidator
 {

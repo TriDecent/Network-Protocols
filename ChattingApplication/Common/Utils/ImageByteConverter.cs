@@ -1,4 +1,4 @@
-namespace ChattingApplication.Utils;
+namespace ChattingApplication.Common.Utils;
 
 public static class ImageByteConverter
 {
