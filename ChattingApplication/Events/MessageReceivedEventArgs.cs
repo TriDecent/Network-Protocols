@@ -2,7 +2,7 @@ using ChattingApplication.Enums;
 
 namespace ChattingApplication.Events;
 
-internal class MessageReceivedEventArgs(
+public class MessageReceivedEventArgs(
   object content, MessageType type) : EventArgs
 {
   public object Content { get; } = content;

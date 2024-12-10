@@ -1,19 +1,22 @@
-﻿using System.Net;
+﻿using System.Data;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
+using static ChattingApplication.Client.IClient;
 
-namespace ChattingApplication;
 
-internal class Client(TcpClient client) : IDisposable
+namespace ChattingApplication.Client;
+
+public class Client(TcpClient client) : IClient
 {
   private TcpClient _client = client;
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
-  public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler;
-  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
+  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -56,7 +59,7 @@ internal class Client(TcpClient client) : IDisposable
     UpdateState(ClientState.Disconnected);
   }
 
-  public async Task SendMessageAsync(string message)
+  public async Task SendTextAsync(string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message);
     await SendToClient(_client, bytes);
@@ -150,17 +153,11 @@ internal class Client(TcpClient client) : IDisposable
   private static string GetSocketErrorMessage(SocketError errorCode) => errorCode switch
   {
     SocketError.ConnectionRefused =>
-        "Could not connect to the server. Please try again later.",
+      "Could not connect to the server. Please try again later.",
     SocketError.TimedOut =>
-        "Connection attempt timed out. The server is not responding.",
+      "Connection attempt timed out. The server is not responding.",
     SocketError.HostUnreachable or SocketError.NetworkUnreachable =>
-        "The server is not reachable. Please check your internet connection.",
+      "The server is not reachable. Please check your internet connection.",
     _ => "An unexpected error occurred. Please try again later."
   };
-
-  internal class ConnectionResult
-  {
-    public bool Success { get; init; }
-    public string? ErrorMessage { get; init; }
-  }
 }

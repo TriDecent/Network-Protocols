@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
+using ChattingApplication.Server;
 using ChattingApplication.Utils;
 
 namespace ChattingApplication;
@@ -18,14 +19,11 @@ public partial class ServerForm : Form
 
   private readonly ChatMessageRenderer _chatRenderer;
 
-  private readonly Server _server;
+  private readonly Server.Server _server;
 
   private bool _isSendingImage;
 
-  private readonly IPEndPoint _serverEndPoint =
-    new(IPAddress.Parse("192.168.2.215"), 1211);
-
-  public ServerForm()
+  public ServerForm(Server.Server server)
   {
     InitializeComponent();
 
@@ -41,9 +39,7 @@ public partial class ServerForm : Form
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
-    using var tcpListener = new TcpListener(_serverEndPoint);
-
-    _server = new Server(tcpListener);
+    _server = server;
 
     _server.MessageReceivedEventHandler += OnMessageReceived;
     _server.StateChangedEventHandler += OnStateChanged;
@@ -57,7 +53,7 @@ public partial class ServerForm : Form
   {
     var serverState = e.ServerState;
     _stateLabel.Text = serverState == ServerState.Listening
-      ? $"State: {serverState} at {_serverEndPoint.Address}:{_serverEndPoint.Port}"
+      ? $"State: {serverState} at {_server.ServerEndPoint.Address}:{_server.ServerEndPoint.Port}"
       : $"State: {serverState}";
 
     var isServerActive = serverState == ServerState.Listening;
@@ -114,7 +110,7 @@ public partial class ServerForm : Form
 
   private async Task SendMessageAsync(string message)
   {
-    await _server.BroadcastMessageToAllClients(message);
+    await _server.BroadcastTextToAllClientsAsync(message);
     _chatRenderer.DisplayMessage("Server", message, true);
   }
 

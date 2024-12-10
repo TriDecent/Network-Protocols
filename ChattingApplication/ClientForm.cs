@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Sockets;
-using System.Numerics;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
+using ChattingApplication.Client;
 
 namespace ChattingApplication;
 
@@ -17,12 +17,12 @@ public partial class ClientForm : Form
   private readonly TextBox _messageTextBox;
   private readonly TextBox _serverIPTextBox, _serverPortTextBox;
   private readonly Label _stateLabel;
-  private readonly Client _client = new(new TcpClient());
+  private readonly Client.Client _client;
   private readonly ChatMessageRenderer _chatRenderer;
 
   private bool _isSendingImage = false;
 
-  public ClientForm()
+  public ClientForm(Client.Client client)
   {
     InitializeComponent();
 
@@ -37,6 +37,8 @@ public partial class ClientForm : Form
     _serverPortTextBox = txtServerPort;
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
+
+    _client = client;
 
     _client.StatusChangedEventHandler += OnStatusChanged;
     _client.MessageReceivedEventHandler += OnMessageReceived;
@@ -139,7 +141,7 @@ public partial class ClientForm : Form
 
   private async Task SendMessageAsync(string message)
   {
-    await _client.SendMessageAsync(message);
+    await _client.SendTextAsync(message);
     _chatRenderer.DisplayMessage("Server", message, true);
   }
 

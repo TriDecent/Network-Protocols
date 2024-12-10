@@ -1,6 +1,6 @@
 namespace ChattingApplication.Enums;
 
-internal enum ServerState
+public enum ServerState
 {
   Stopped,
 

@@ -1,13 +1,14 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
 
-namespace ChattingApplication;
+namespace ChattingApplication.Server;
 
-internal class Server(TcpListener server) : IDisposable
+public class Server(TcpListener server) : IServer
 {
   private readonly TcpListener _server = server;
   private CancellationTokenSource _listeningCTS = new();
@@ -16,13 +17,16 @@ internal class Server(TcpListener server) : IDisposable
   private bool _isListening = false;
   private bool _isRunning = false;
 
-  public ServerState State { get; private set; } = ServerState.Shutdown;
+  private ServerState _state = ServerState.Shutdown;
+  public ServerState State { get => _state; }
+
+  public IPEndPoint ServerEndPoint => (IPEndPoint)_server.LocalEndpoint;
 
   public int ConnectedClients { get => _clients.Count; }
 
-  public EventHandler<int>? ClientsChangedEventHandler;
-  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
-  public EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
+  public EventHandler<int>? ClientsChangedEventHandler { get; set; }
+  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
+  public EventHandler<StateChangedEventArgs>? StateChangedEventHandler { get; set; }
 
   public void StartListeningForConnections()
   {
@@ -70,15 +74,6 @@ internal class Server(TcpListener server) : IDisposable
     UpdateState(ServerState.Shutdown);
   }
 
-  private void UpdateState(ServerState state)
-  {
-    State = state;
-    RaiseChangedState();
-  }
-
-  private void RaiseChangedState()
-    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
-
   public async Task HandleIncomingConnectionsAsync()
   {
     while (!_listeningCTS.Token.IsCancellationRequested)
@@ -99,7 +94,7 @@ internal class Server(TcpListener server) : IDisposable
     }
   }
 
-  public async Task BroadcastMessageToAllClients(string message)
+  public async Task BroadcastTextToAllClientsAsync(string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message);
 
@@ -133,7 +128,6 @@ internal class Server(TcpListener server) : IDisposable
       catch (IOException) // means clients got disconnected
       {
         disconnectedClients.Add(client);
-        client.Close();
       }
     });
 
@@ -152,13 +146,13 @@ internal class Server(TcpListener server) : IDisposable
 
   private async Task HandleClientMessagesAsync(TcpClient client)
   {
-    const int OneMB = 1048576;
+    const int BufferSize = 1048576;
     var stream = client.GetStream();
 
     var memoryStream = new MemoryStream();
     while (!_shutdownCTS.Token.IsCancellationRequested)
     {
-      var buffer = new byte[OneMB];
+      var buffer = new byte[BufferSize];
       var bytesReadCount = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length),
         _shutdownCTS.Token);
 
@@ -179,6 +173,12 @@ internal class Server(TcpListener server) : IDisposable
         messageBytes.IsImage() ?
         MessageType.Image :
         MessageType.Text));
+
+      var messageBroadcastTask = messageBytes.IsImage() ?
+        BroadcastImageToAllClientsAsync(messageBytes.BytesToImage()) :
+        BroadcastTextToAllClientsAsync(Encoding.UTF8.GetString(messageBytes));
+
+      await messageBroadcastTask;
 
       memoryStream.SetLength(0);
     }
@@ -216,6 +216,15 @@ internal class Server(TcpListener server) : IDisposable
     }
   }
 
+  private void UpdateState(ServerState state)
+  {
+    _state = state;
+    RaiseChangedState();
+  }
+
+  private void RaiseChangedState()
+    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(_state, null));
+
   private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
   {
     object content = message.Type == MessageType.Text
@@ -231,14 +240,21 @@ internal class Server(TcpListener server) : IDisposable
 
   public void Dispose()
   {
-    ShutdownAllConnections();
+    _listeningCTS.Cancel();
+    _shutdownCTS.Cancel();
 
-    foreach (var client in _clients)
+    _listeningCTS.Dispose();
+    _shutdownCTS.Dispose();
+
+    lock (_clients)
     {
-      client.Close();
+      foreach (var client in _clients)
+      {
+        client.Close();
+      }
+      _clients.Clear();
     }
 
-    _clients.Clear();
     _server.Dispose();
   }
 }

@@ -1,6 +1,6 @@
 namespace ChattingApplication.Enums;
 
-internal enum ClientState
+public enum ClientState
 {
   Disconnected,
 

@@ -1,6 +1,6 @@
 namespace ChattingApplication.Enums;
 
-internal enum MessageType
+public enum MessageType
 {
   Text,
   Image
