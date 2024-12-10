@@ -18,6 +18,9 @@ internal class Server(TcpListener server) : IDisposable
 
   public ServerState State { get; private set; } = ServerState.Shutdown;
 
+  public int ConnectedClients { get => _clients.Count; }
+
+  public EventHandler<int>? ClientsChangedEventHandler;
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
   public EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
 
@@ -62,17 +65,7 @@ internal class Server(TcpListener server) : IDisposable
     _isListening = false;
     _isRunning = false;
 
-    List<TcpClient> copiedClients = [.. _clients];
-
-    lock (_clients)
-    {
-      foreach (var client in copiedClients)
-      {
-        client.Close();
-      }
-
-      _clients.Clear();
-    }
+    RemoveAllClients();
 
     UpdateState(ServerState.Shutdown);
   }
@@ -100,10 +93,7 @@ internal class Server(TcpListener server) : IDisposable
         break;
       }
 
-      lock (_clients)
-      {
-        _clients.Add(client);
-      }
+      AddClient(client);
 
       _ = HandleClientAsync(client);
     }
@@ -194,12 +184,35 @@ internal class Server(TcpListener server) : IDisposable
     }
   }
 
+  private void AddClient(TcpClient client)
+  {
+    lock (_clients)
+    {
+      _clients.Add(client);
+      RaiseChangedConnectedClients();
+    }
+  }
+
   private void RemoveClient(TcpClient client)
   {
     lock (_clients)
     {
       _clients.Remove(client);
       client.Close();
+      RaiseChangedConnectedClients();
+    }
+  }
+
+  private void RemoveAllClients()
+  {
+    lock (_clients)
+    {
+      foreach (var client in _clients)
+      {
+        _clients.Remove(client);
+        client.Close();
+        RaiseChangedConnectedClients();
+      }
     }
   }
 
@@ -212,6 +225,9 @@ internal class Server(TcpListener server) : IDisposable
     MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(content, message.Type));
   }
+
+  private void RaiseChangedConnectedClients()
+    => ClientsChangedEventHandler?.Invoke(this, ConnectedClients);
 
   public void Dispose()
   {
