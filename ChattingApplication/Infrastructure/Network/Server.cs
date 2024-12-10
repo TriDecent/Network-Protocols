@@ -206,12 +206,15 @@ public class Server(TcpListener server) : IServer
   {
     lock (_clients)
     {
-      foreach (var client in _clients)
+      var clientsToRemove = _clients.ToList();
+      _clients.Clear();
+
+      foreach (var client in clientsToRemove)
       {
-        _clients.Remove(client);
         client.Close();
-        RaiseChangedConnectedClients();
       }
+
+      RaiseChangedConnectedClients();
     }
   }
 
