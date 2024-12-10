@@ -1,18 +1,18 @@
-﻿using System.Data;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
+using ChattingApplication.Models;
 using ChattingApplication.Utils;
 using static ChattingApplication.Client.IClient;
 
-
 namespace ChattingApplication.Client;
 
-public class Client(TcpClient client) : IClient
+public class Client(ClientDetails client) : IClient
 {
-  private TcpClient _client = client;
+  private ClientDetails _client = client;
+  public ClientDetails ClientDetails { get => _client; }
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
@@ -23,7 +23,7 @@ public class Client(TcpClient client) : IClient
     try
     {
       UpdateState(ClientState.Connecting);
-      await _client.ConnectAsync(ipEndPoint);
+      await _client.Client.ConnectAsync(ipEndPoint);
       UpdateState(ClientState.Connected);
 
       _ = HandleReceivedMessageAsync().ContinueWith(cancelledTask =>
@@ -46,15 +46,15 @@ public class Client(TcpClient client) : IClient
 
   public void DisconnectFromServer()
   {
-    if (!_client.Connected) return;
+    if (!_client.Client.Connected) return;
 
     UpdateState(ClientState.Disconnecting);
 
     _cts.Cancel();
     _cts = new();
 
-    _client.Close();
-    _client = new TcpClient();
+    _client.Client.Close();
+    _client = new ClientDetails(_client.Name, new TcpClient());
 
     UpdateState(ClientState.Disconnected);
   }
@@ -62,20 +62,22 @@ public class Client(TcpClient client) : IClient
   public async Task SendTextAsync(string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message);
-    await SendToClient(_client, bytes);
+    await SendToClient(_client.Client, bytes);
   }
 
   public async Task SendImageAsync(Image image)
   {
     var bytes = ImageByteConverter.ImageToBytes(image);
-    await SendToClient(_client, bytes);
+    await SendToClient(_client.Client, bytes);
   }
+
+  public void UpdateName(string newName) => _client = _client with { Name = newName };
 
   public void Dispose()
   {
     _cts.Cancel();
     _cts.Dispose();
-    _client.Dispose();
+    _client.Client.Dispose();
   }
 
   private async Task SendToClient(TcpClient client, byte[] bytes)
@@ -88,7 +90,7 @@ public class Client(TcpClient client) : IClient
     catch (IOException ex)
     {
       UpdateState(ClientState.Disconnected);
-      _client = new TcpClient();
+      _client = new ClientDetails(_client.Name, new TcpClient());
 
       throw new IOException("Connection to server was lost", ex);
     }
@@ -106,7 +108,7 @@ public class Client(TcpClient client) : IClient
   private async Task HandleReceivedMessageAsync()
   {
     const int OneMB = 1048576;
-    var stream = _client.GetStream();
+    var stream = _client.Client.GetStream();
 
     var buffer = new byte[OneMB];
 
