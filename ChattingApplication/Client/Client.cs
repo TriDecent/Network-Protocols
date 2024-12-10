@@ -12,8 +12,8 @@ namespace ChattingApplication.Client;
 public class Client(ClientDetails client) : IClient
 {
   private ClientDetails _client = client;
-  public ClientDetails ClientDetails { get => _client; }
   private CancellationTokenSource _cts = new();
+  public ClientDetails ClientDetails { get => _client; }
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }

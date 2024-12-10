@@ -108,6 +108,12 @@ public class Server(TcpListener server) : IServer
   }
 
   private async Task BroadcastToAllClients(byte[] bytes)
+    => await BroadcastToClientsCore(bytes);
+
+  private async Task BroadcastToAllExcept(byte[] bytes, TcpClient excludedClient)
+    => await BroadcastToClientsCore(bytes, excludedClient);
+
+  private async Task BroadcastToClientsCore(byte[] bytes, TcpClient? excludedClient = null)
   {
     var copiedClients = new List<TcpClient>();
     var disconnectedClients = new ConcurrentBag<TcpClient>();
@@ -117,18 +123,20 @@ public class Server(TcpListener server) : IServer
       copiedClients = [.. _clients];
     }
 
-    var broadcastTasks = copiedClients.Select(async client =>
-    {
-      try
+    var broadcastTasks = copiedClients.
+      Where(client => client != excludedClient).
+      Select(async client =>
       {
-        var stream = client.GetStream();
-        await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _shutdownCTS.Token);
-      }
-      catch (IOException) // means clients got disconnected
-      {
-        disconnectedClients.Add(client);
-      }
-    });
+        try
+        {
+          var stream = client.GetStream();
+          await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _shutdownCTS.Token);
+        }
+        catch (IOException) // means clients got disconnected
+        {
+          disconnectedClients.Add(client);
+        }
+      });
 
     await Task.WhenAll(broadcastTasks);
 
@@ -173,11 +181,7 @@ public class Server(TcpListener server) : IServer
         MessageType.Image :
         MessageType.Text));
 
-      var messageBroadcastTask = messageBytes.IsImage() ?
-        BroadcastImageToAllClientsAsync(messageBytes.BytesToImage()) :
-        BroadcastTextToAllClientsAsync(Encoding.UTF8.GetString(messageBytes));
-
-      await messageBroadcastTask;
+      await BroadcastToAllExcept(messageBytes, client);
 
       memoryStream.SetLength(0);
     }
