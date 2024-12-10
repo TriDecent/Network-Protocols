@@ -1,10 +1,9 @@
 using System.Net;
-using System.Net.Sockets;
 using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
-using ChattingApplication.Client;
 using ChattingApplication.Models;
+using System.Text;
 
 namespace ChattingApplication;
 
@@ -92,17 +91,17 @@ public partial class ClientForm : Form
     _connectServerButton.Visible = !isConnected;
     _disconnectServerButton.Visible = isConnected;
   }
-
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
-    if (e.Type == MessageType.Text)
+    var messageOwner = e.Message.Client.Name;
+
+    if (e.Message.Type == MessageType.Image)
     {
-      _chatRenderer.DisplayMessage("Server", (string)e.Content);
+      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage(), false);
       return;
     }
 
-    var bytes = e.Content as byte[] ?? [];
-    _chatRenderer.DisplayImage("Server", bytes.BytesToImage(), false);
+    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
   }
 
   private async void BtnConnectToServer_Click(object sender, EventArgs e)
@@ -147,14 +146,28 @@ public partial class ClientForm : Form
   private async Task SendImageAsync(string filePath)
   {
     var image = Image.FromFile(filePath);
-    await _client.SendImageAsync(image);
+    var bytes = ImageByteConverter.ImageToBytes(image);
+
+    await SendMessageAsync(bytes, MessageType.Image);
+
     _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true);
   }
 
-  private async Task SendMessageAsync(string message)
+  private async Task SendMessageAsync(string text)
   {
-    await _client.SendTextAsync(message);
-    _chatRenderer.DisplayMessage(_client.ClientDetails.Name, message, true);
+    var bytes = Encoding.UTF8.GetBytes(text);
+
+    await SendMessageAsync(bytes, MessageType.Text);
+
+    _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true);
+  }
+
+  private async Task SendMessageAsync(byte[] content, MessageType messageType)
+  {
+    var clientInfo = new ClientInfo(_client.ClientDetails.Name);
+    var message = new Models.Message(clientInfo, content, messageType);
+
+    await _client.SendMessageAsync(message);
   }
 
   private void BtnAttach_Click(object sender, EventArgs e)
