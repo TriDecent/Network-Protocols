@@ -114,9 +114,9 @@
       // btnSend
       // 
       btnSend.Font = new Font("Segoe UI", 12F);
-      btnSend.Location = new Point(448, 467);
+      btnSend.Location = new Point(448, 465);
       btnSend.Name = "btnSend";
-      btnSend.Size = new Size(62, 29);
+      btnSend.Size = new Size(62, 31);
       btnSend.TabIndex = 12;
       btnSend.Text = "Send";
       btnSend.UseVisualStyleBackColor = true;

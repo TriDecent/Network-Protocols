@@ -121,22 +121,13 @@ public partial class ClientForm : Form
 
     if (message == string.Empty) return;
 
-    try
-    {
-      var sendTask = _isSendingImage ?
-        SendImageAsync(message) :
-        SendMessageAsync(message);
+    var sendTask = _isSendingImage ?
+      SendImageAsync(message) :
+      SendMessageAsync(message);
 
-      await sendTask;
-    }
-    catch (IOException ex)
-    {
-      MessageBox.Show(ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-    }
-    finally
-    {
-      ClearUserMessageInput();
-    }
+    await sendTask;
+
+    ClearUserMessageInput();
   }
 
   private async Task SendImageAsync(string filePath)
