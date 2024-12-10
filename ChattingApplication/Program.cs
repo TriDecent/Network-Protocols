@@ -17,11 +17,21 @@ namespace ChattingApplication
       ApplicationConfiguration.Initialize();
       // Application.Run(new ServerForm());
 
-      using var tcpClient = new TcpClient();
-      var account = new ClientDetails("", tcpClient);
-      var client = new Client.Client(account);  // not use using, let form handle life cycle
+      using var tcpClient1 = new TcpClient();
+      using var tcpClient2 = new TcpClient();
+      using var tcpClient3 = new TcpClient();
 
-      var clientForm = new ClientForm(client);
+      var account1 = new ClientInfo("");
+      var account2 = new ClientInfo("");
+      var account3 = new ClientInfo("");
+
+      var client1 = new Client.Client(tcpClient1, account1);  // not use using, let form handle life cycle
+      var client2 = new Client.Client(tcpClient2, account2);  // not use using, let form handle life cycle
+      var client3 = new Client.Client(tcpClient3, account3);  // not use using, let form handle life cycle
+
+      var clientForm1 = new ClientForm(client1);
+      var clientForm2 = new ClientForm(client2);
+      var clientForm3 = new ClientForm(client3);
 
       var ipEndPoint = new IPEndPoint(IPAddress.Parse("192.168.2.215"), 1211);
       using var tcpListener = new TcpListener(ipEndPoint);
@@ -38,12 +48,16 @@ namespace ChattingApplication
       hiddenMainForm.Load += (s, e) =>
       {
         serverForm.Show();
-        clientForm.Show();
+        clientForm1.Show();
+        clientForm2.Show();
+        clientForm3.Show();
         hiddenMainForm.Hide();
       };
 
       serverForm.FormClosed += CloseHiddenFormIfNoOpenForms;
-      clientForm.FormClosed += CloseHiddenFormIfNoOpenForms;
+      clientForm1.FormClosed += CloseHiddenFormIfNoOpenForms;
+      clientForm2.FormClosed += CloseHiddenFormIfNoOpenForms;
+      clientForm3.FormClosed += CloseHiddenFormIfNoOpenForms;
 
       Application.Run(hiddenMainForm);
 
