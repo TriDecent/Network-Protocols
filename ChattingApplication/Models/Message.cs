@@ -2,4 +2,4 @@ using ChattingApplication.Enums;
 
 namespace ChattingApplication.Models;
 
-public record Message(ClientDetails Client, object Content, MessageType Type);
+public record Message(ClientInfo Client, byte[] Content, MessageType Type);
