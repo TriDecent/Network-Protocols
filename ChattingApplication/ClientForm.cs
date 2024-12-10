@@ -4,6 +4,7 @@ using ChattingApplication.Enums;
 using ChattingApplication.Events;
 using ChattingApplication.Utils;
 using ChattingApplication.Client;
+using ChattingApplication.Models;
 
 namespace ChattingApplication;
 
@@ -16,8 +17,9 @@ public partial class ClientForm : Form
   private readonly RichTextBox _chatDisplayArea;
   private readonly TextBox _messageTextBox;
   private readonly TextBox _serverIPTextBox, _serverPortTextBox;
+  private readonly TextBox _clientNameTextBox;
   private readonly Label _stateLabel;
-  private readonly Client.Client _client;
+  private readonly Client.Client _client; // only for better performance
   private readonly ChatMessageRenderer _chatRenderer;
 
   private bool _isSendingImage = false;
@@ -35,6 +37,7 @@ public partial class ClientForm : Form
     _stateLabel = lblState;
     _serverIPTextBox = txtServerIP;
     _serverPortTextBox = txtServerPort;
+    _clientNameTextBox = txtName;
 
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
@@ -73,18 +76,21 @@ public partial class ClientForm : Form
 
     _stateLabel.Text = $"State: {clientState}";
 
-    bool canEditServer = clientState == ClientState.Disconnected ||
+    bool isDisconnectedOrFailed = clientState == ClientState.Disconnected ||
       clientState == ClientState.Failed;
-    _serverIPTextBox.Enabled = canEditServer;
-    _serverPortTextBox.Enabled = canEditServer;
+    bool isConnectingOrDisconnecting = clientState == ClientState.Connecting ||
+      clientState == ClientState.Disconnecting;
+    bool isConnected = clientState == ClientState.Connected;
 
-    _connectServerButton.Enabled = clientState != ClientState.Connecting
-        && clientState != ClientState.Disconnecting;
+    _serverIPTextBox.Enabled = isDisconnectedOrFailed;
+    _serverPortTextBox.Enabled = isDisconnectedOrFailed;
+    _clientNameTextBox.Enabled = isDisconnectedOrFailed;
 
-    _disconnectServerButton.Enabled = _connectServerButton.Enabled;
+    _connectServerButton.Enabled = !isConnectingOrDisconnecting;
+    _disconnectServerButton.Enabled = !isConnectingOrDisconnecting;
 
-    _connectServerButton.Visible = clientState != ClientState.Connected;
-    _disconnectServerButton.Visible = !_connectServerButton.Visible;
+    _connectServerButton.Visible = !isConnected;
+    _disconnectServerButton.Visible = isConnected;
   }
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
@@ -104,6 +110,12 @@ public partial class ClientForm : Form
     var ip = IPAddress.Parse(_serverIPTextBox.Text);
     var port = int.Parse(_serverPortTextBox.Text);
     var ipEndPoint = new IPEndPoint(ip, port);
+
+    var clientName = _clientNameTextBox.Text;
+
+    if (clientName == string.Empty) clientName = "client";
+
+    _client.UpdateName(clientName);
 
     var establishConnectionTask = await _client.ConnectServerAsync(ipEndPoint);
 
@@ -136,13 +148,13 @@ public partial class ClientForm : Form
   {
     var image = Image.FromFile(filePath);
     await _client.SendImageAsync(image);
-    _chatRenderer.DisplayImage("Server", image, true);
+    _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true);
   }
 
   private async Task SendMessageAsync(string message)
   {
     await _client.SendTextAsync(message);
-    _chatRenderer.DisplayMessage("Server", message, true);
+    _chatRenderer.DisplayMessage(_client.ClientDetails.Name, message, true);
   }
 
   private void BtnAttach_Click(object sender, EventArgs e)

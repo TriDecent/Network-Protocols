@@ -17,8 +17,7 @@ public class Server(TcpListener server) : IServer
   private bool _isListening = false;
   private bool _isRunning = false;
 
-  private ServerState _state = ServerState.Shutdown;
-  public ServerState State { get => _state; }
+  public ServerState State { get; private set; } = ServerState.Shutdown;
 
   public IPEndPoint ServerEndPoint => (IPEndPoint)_server.LocalEndpoint;
 
@@ -218,12 +217,12 @@ public class Server(TcpListener server) : IServer
 
   private void UpdateState(ServerState state)
   {
-    _state = state;
+    State = state;
     RaiseChangedState();
   }
 
   private void RaiseChangedState()
-    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(_state, null));
+    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
 
   private void RaiseReceivedMessage((byte[] Bytes, MessageType Type) message)
   {

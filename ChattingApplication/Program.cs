@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using ChattingApplication.Models;
 
 namespace ChattingApplication
 {
@@ -17,7 +18,8 @@ namespace ChattingApplication
       // Application.Run(new ServerForm());
 
       using var tcpClient = new TcpClient();
-      var client = new Client.Client(tcpClient);  // not use using, let form handle life cycle
+      var account = new ClientDetails("", tcpClient);
+      var client = new Client.Client(account);  // not use using, let form handle life cycle
 
       var clientForm = new ClientForm(client);
 

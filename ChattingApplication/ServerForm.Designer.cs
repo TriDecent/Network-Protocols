@@ -36,11 +36,11 @@
       rtbDialogArea = new RichTextBox();
       btnAttach = new Button();
       btnSend = new Button();
-      lblServer = new Label();
       txtMessage = new TextBox();
       btnShutDown = new Button();
       lblConnected = new Label();
       lblConnectedClients = new Label();
+      lblServer = new Label();
       SuspendLayout();
       // 
       // btnDetach
@@ -124,16 +124,6 @@
       btnSend.UseVisualStyleBackColor = true;
       btnSend.Click += BtnSend_ClickAsync;
       // 
-      // lblServer
-      // 
-      lblServer.AutoSize = true;
-      lblServer.Font = new Font("Segoe UI", 12F);
-      lblServer.Location = new Point(12, 10);
-      lblServer.Name = "lblServer";
-      lblServer.Size = new Size(55, 21);
-      lblServer.TabIndex = 11;
-      lblServer.Text = "Server";
-      // 
       // txtMessage
       // 
       txtMessage.Font = new Font("Segoe UI", 12F);
@@ -174,6 +164,16 @@
       lblConnectedClients.TabIndex = 22;
       lblConnectedClients.Text = "0";
       // 
+      // lblServer
+      // 
+      lblServer.AutoSize = true;
+      lblServer.Font = new Font("Segoe UI", 12F);
+      lblServer.Location = new Point(12, 10);
+      lblServer.Name = "lblServer";
+      lblServer.Size = new Size(55, 21);
+      lblServer.TabIndex = 11;
+      lblServer.Text = "Server";
+      // 
       // ServerForm
       // 
       AcceptButton = btnSend;
@@ -210,10 +210,10 @@
     private RichTextBox rtbDialogArea;
     private Button btnAttach;
     private Button btnSend;
-    private Label lblServer;
     private TextBox txtMessage;
     private Button btnShutDown;
     private Label lblConnected;
     private Label lblConnectedClients;
+    private Label lblServer;
   }
 }

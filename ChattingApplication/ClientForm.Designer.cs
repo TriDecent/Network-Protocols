@@ -41,6 +41,8 @@
       txtServerIP = new TextBox();
       txtServerPort = new TextBox();
       lblServerPort = new Label();
+      txtName = new TextBox();
+      lblName = new Label();
       SuspendLayout();
       // 
       // txtMessage
@@ -111,7 +113,7 @@
       // 
       lblState.AutoSize = true;
       lblState.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
-      lblState.Location = new Point(14, 506);
+      lblState.Location = new Point(14, 509);
       lblState.Name = "lblState";
       lblState.Size = new Size(152, 21);
       lblState.TabIndex = 7;
@@ -169,12 +171,32 @@
       lblServerPort.TabIndex = 1;
       lblServerPort.Text = "Port";
       // 
+      // txtName
+      // 
+      txtName.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      txtName.Location = new Point(360, 506);
+      txtName.Name = "txtName";
+      txtName.Size = new Size(152, 29);
+      txtName.TabIndex = 12;
+      // 
+      // lblName
+      // 
+      lblName.AutoSize = true;
+      lblName.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      lblName.Location = new Point(258, 509);
+      lblName.Name = "lblName";
+      lblName.Size = new Size(96, 21);
+      lblName.TabIndex = 13;
+      lblName.Text = "Client Name";
+      // 
       // ClientForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
-      ClientSize = new Size(528, 535);
+      ClientSize = new Size(528, 543);
+      Controls.Add(lblName);
+      Controls.Add(txtName);
       Controls.Add(txtServerPort);
       Controls.Add(txtServerIP);
       Controls.Add(btnDetach);
@@ -210,5 +232,7 @@
     private TextBox txtServerIP;
     private TextBox txtServerPort;
     private Label lblServerPort;
+    private TextBox txtName;
+    private Label lblName;
   }
 }

@@ -19,7 +19,7 @@ public partial class ServerForm : Form
 
   private readonly ChatMessageRenderer _chatRenderer;
 
-  private readonly Server.Server _server;
+  private readonly Server.Server _server; // only for better performance
 
   private bool _isSendingImage;
 
