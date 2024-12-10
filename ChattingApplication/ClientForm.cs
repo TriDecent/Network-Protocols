@@ -173,6 +173,5 @@ public partial class ClientForm : Form
     _detachItemButton.Visible = _isSendingImage;
   }
 
-  private void ClearUserMessageInput()
-    => _messageTextBox.Text = "";
+  private void ClearUserMessageInput() => _messageTextBox.Text = "";
 }

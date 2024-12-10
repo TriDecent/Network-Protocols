@@ -39,6 +39,8 @@
       lblServer = new Label();
       txtMessage = new TextBox();
       btnShutDown = new Button();
+      lblConnected = new Label();
+      lblConnectedClients = new Label();
       SuspendLayout();
       // 
       // btnDetach
@@ -152,12 +154,34 @@
       btnShutDown.Visible = false;
       btnShutDown.Click += BtnShutDown_Click;
       // 
+      // lblConnected
+      // 
+      lblConnected.AutoSize = true;
+      lblConnected.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      lblConnected.Location = new Point(309, 501);
+      lblConnected.Name = "lblConnected";
+      lblConnected.Size = new Size(135, 21);
+      lblConnected.TabIndex = 21;
+      lblConnected.Text = "Connected clients:";
+      // 
+      // lblConnectedClients
+      // 
+      lblConnectedClients.AutoSize = true;
+      lblConnectedClients.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      lblConnectedClients.Location = new Point(468, 501);
+      lblConnectedClients.Name = "lblConnectedClients";
+      lblConnectedClients.Size = new Size(19, 21);
+      lblConnectedClients.TabIndex = 22;
+      lblConnectedClients.Text = "0";
+      // 
       // ServerForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(522, 527);
+      Controls.Add(lblConnectedClients);
+      Controls.Add(lblConnected);
       Controls.Add(btnShutDown);
       Controls.Add(btnDetach);
       Controls.Add(btnStop);
@@ -189,5 +213,7 @@
     private Label lblServer;
     private TextBox txtMessage;
     private Button btnShutDown;
+    private Label lblConnected;
+    private Label lblConnectedClients;
   }
 }

@@ -12,6 +12,7 @@ public partial class ServerForm : Form
   private readonly Button _startServerButton, _stopServerButton, _shutdownButton;
   private readonly Button _attachButton, _detachButton;
   private readonly Label _stateLabel;
+  private readonly Label _connectedClientsLabel;
   private readonly RichTextBox _chatDisplayArea;
   private readonly TextBox _messageTextbox;
 
@@ -32,6 +33,7 @@ public partial class ServerForm : Form
     _stopServerButton = btnStop;
     _shutdownButton = btnShutDown;
     _stateLabel = lblState;
+    _connectedClientsLabel = lblConnectedClients;
     _attachButton = btnAttach;
     _detachButton = btnDetach;
     _chatDisplayArea = rtbDialogArea;
@@ -45,6 +47,8 @@ public partial class ServerForm : Form
 
     _server.MessageReceivedEventHandler += OnMessageReceived;
     _server.StateChangedEventHandler += OnStateChanged;
+    _server.ClientsChangedEventHandler += (s, connectedClientsCount)
+      => _connectedClientsLabel.Text = connectedClientsCount.ToString();
 
     FormClosing += (s, e) => _server?.Dispose();
   }
