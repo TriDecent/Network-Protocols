@@ -102,7 +102,7 @@ public class Server(TcpListener server) : IServer
     await BroadcastToClientsCoreAsync(bytes);
   }
 
-  public async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, TcpClient excludedClient)
+  private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, TcpClient excludedClient)
   {
     var jsonMessage = JsonSerializer.Serialize(message)!;
     var bytes = Encoding.UTF8.GetBytes(jsonMessage);
