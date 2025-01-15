@@ -153,7 +153,7 @@ public class Server(TcpListener server) : IServer
     const int BufferSize = 1048576;
     var stream = client.GetStream();
 
-    var memoryStream = new MemoryStream();
+    using var memoryStream = new MemoryStream();
     while (!_shutdownCTS.Token.IsCancellationRequested)
     {
       var buffer = new byte[BufferSize];
