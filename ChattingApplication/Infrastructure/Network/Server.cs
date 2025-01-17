@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -11,6 +12,7 @@ namespace ChattingApplication.Infrastructure.Network;
 
 public class Server(TcpListener server) : IServer
 {
+  private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private readonly TcpListener _server = server;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
@@ -96,18 +98,29 @@ public class Server(TcpListener server) : IServer
 
   public async Task BroadcastMessageToAllClientsAsync(Core.Models.Message message)
   {
-    var jsonMessage = JsonSerializer.Serialize(message)!;
-    var bytes = Encoding.UTF8.GetBytes(jsonMessage);
-
-    await BroadcastToClientsCoreAsync(bytes);
+    var messageBytes = await SerializeMessageToBytesAsync(message);
+    await BroadcastToClientsCoreAsync(messageBytes);
   }
 
   private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, TcpClient excludedClient)
   {
-    var jsonMessage = JsonSerializer.Serialize(message)!;
-    var bytes = Encoding.UTF8.GetBytes(jsonMessage);
+    var messageBytes = await SerializeMessageToBytesAsync(message);
+    await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
+  }
 
-    await BroadcastToClientsCoreAsync(bytes, excludedClient);
+  private static async Task<byte[]> SerializeMessageToBytesAsync(Core.Models.Message message)
+  {
+    var jsonMessage = JsonSerializer.Serialize(message);
+    var contentLengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
+    var contentBytes = Encoding.UTF8.GetBytes(jsonMessage);
+
+    BinaryPrimitives.WriteInt32BigEndian(contentLengthBytes, contentBytes.Length);
+
+    using var memoryStream = new MemoryStream();
+    await memoryStream.WriteAsync(contentLengthBytes);
+    await memoryStream.WriteAsync(contentBytes);
+
+    return memoryStream.ToArray();
   }
 
   private async Task BroadcastToClientsCoreAsync(byte[] bytes, TcpClient? excludedClient = null)
@@ -150,36 +163,31 @@ public class Server(TcpListener server) : IServer
 
   private async Task HandleClientMessagesAsync(TcpClient client)
   {
-    const int BufferSize = 1048576;
     var stream = client.GetStream();
 
-    using var memoryStream = new MemoryStream();
+    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
     while (!_shutdownCTS.Token.IsCancellationRequested)
     {
-      var buffer = new byte[BufferSize];
-      var bytesReadCount = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length),
-        _shutdownCTS.Token);
+      try
+      {
+        await stream.ReadExactlyAsync(buffer.AsMemory(), _shutdownCTS.Token);
 
-      if (bytesReadCount == 0)
+        var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
+        var contentBytes = new byte[contentLength];
+
+        await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
+
+        var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
+
+        RaiseReceivedMessage(message);
+
+        await BroadcastMessageToClientsExceptAsync(message, client);
+      }
+      catch (EndOfStreamException)
       {
         RemoveClient(client);
         break;
-      };
-
-      await memoryStream.WriteAsync(buffer.AsMemory(0, bytesReadCount),
-        _shutdownCTS.Token);
-
-      if (stream.DataAvailable) continue;
-
-      var messageBytes = memoryStream.ToArray();
-
-      var message = JsonSerializer.Deserialize<Core.Models.Message>(messageBytes)!;
-
-      RaiseReceivedMessage(message);
-
-      await BroadcastMessageToClientsExceptAsync(message, client);
-
-      memoryStream.SetLength(0);
+      }
     }
   }
 
