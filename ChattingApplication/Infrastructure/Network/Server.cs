@@ -4,6 +4,7 @@ using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -40,8 +41,8 @@ public class Server(TcpListener server) : IServer
   public event EventHandler<int>? ClientsCountChangedEventHandler;
   public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  public event EventHandler<ClientSessionInfo>? ClientConnectedEventHandler;
-  public event EventHandler<ClientSessionInfo>? ClientDisconnectedEventHandler;
+  public event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
+  public event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
 
   public void StartListeningForConnections()
   {
@@ -276,13 +277,15 @@ public class Server(TcpListener server) : IServer
       this, new MessageReceivedEventArgs(message, message.Type));
 
   private void RaiseChangedClientsCount()
-    => ClientsCountChangedEventHandler?.Invoke(this, ConnectedClients);
+    => ClientsCountChangedEventHandler?.Invoke(this, ConnectedClientsCount);
 
   private void RaiseConnectedClient(ClientSessionInfo clientInfo)
-    => ClientConnectedEventHandler?.Invoke(this, clientInfo);
+    => ClientConnectedEventHandler?.Invoke(
+      this, new ClientSessionInfoEventArgs(clientInfo));
 
   private void RaiseDisconnectedClient(ClientSessionInfo clientInfo)
-    => ClientDisconnectedEventHandler?.Invoke(this, clientInfo);
+    => ClientDisconnectedEventHandler?.Invoke(
+      this, new ClientSessionInfoEventArgs(clientInfo));
 
   public void Dispose()
   {
