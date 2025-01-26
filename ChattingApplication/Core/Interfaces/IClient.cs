@@ -13,8 +13,8 @@ public interface IClient : IDisposable
   void UpdateName(string newName);
   ClientInfo ClientDetails { get; }
   ClientState State { get; }
-  EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
-  EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
+  event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
+  event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
 
   public class ConnectionResult
   {

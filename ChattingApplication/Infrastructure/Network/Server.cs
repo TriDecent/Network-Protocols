@@ -27,11 +27,11 @@ public class Server(TcpListener server) : IServer
 
   public int ConnectedClients { get => _clients.Count; }
 
-  public EventHandler<int>? ClientsCountChangedEventHandler { get; set; }
-  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
-  public EventHandler<StateChangedEventArgs>? StateChangedEventHandler { get; set; }
-  public EventHandler<ClientSessionInfo>? ClientsConnectedEventHandler { get; set; }
-  public EventHandler<ClientSessionInfo>? ClientsDisconnectedEventHandler { get; set; }
+  public event EventHandler<int>? ClientsCountChangedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
+  public event EventHandler<ClientSessionInfo>? ClientConnectedEventHandler;
+  public event EventHandler<ClientSessionInfo>? ClientDisconnectedEventHandler;
 
   public void StartListeningForConnections()
   {
@@ -269,10 +269,10 @@ public class Server(TcpListener server) : IServer
     => ClientsCountChangedEventHandler?.Invoke(this, ConnectedClients);
 
   private void RaiseConnectedClient(ClientSessionInfo clientInfo)
-    => ClientsConnectedEventHandler?.Invoke(this, clientInfo);
+    => ClientConnectedEventHandler?.Invoke(this, clientInfo);
 
   private void RaiseDisconnectedClient(ClientSessionInfo clientInfo)
-    => ClientsConnectedEventHandler?.Invoke(this, clientInfo);
+    => ClientDisconnectedEventHandler?.Invoke(this, clientInfo);
 
   public void Dispose()
   {

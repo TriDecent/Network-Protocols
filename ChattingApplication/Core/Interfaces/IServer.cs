@@ -1,5 +1,6 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Models;
 using System.Net;
 
 namespace ChattingApplication.Core.Interfaces;
@@ -14,7 +15,9 @@ public interface IServer : IDisposable
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   int ConnectedClients { get; }
-  EventHandler<int>? ClientsCountChangedEventHandler { get; set; }
-  EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
-  EventHandler<StateChangedEventArgs>? StateChangedEventHandler { get; set; }
+  event EventHandler<int>? ClientsCountChangedEventHandler;
+  event EventHandler<ClientSessionInfo>? ClientConnectedEventHandler;
+  event EventHandler<ClientSessionInfo>? ClientDisconnectedEventHandler;
+  event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
 }

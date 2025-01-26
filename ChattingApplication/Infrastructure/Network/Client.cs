@@ -18,8 +18,8 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
   private CancellationTokenSource _cts = new();
   public ClientInfo ClientDetails { get; private set; } = clientDetails;
   public ClientState State { get; private set; } = ClientState.Disconnected;
-  public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
-  public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
+  public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -127,7 +127,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
   }
 
   private void RaiseChangedState()
-    => StatusChangedEventHandler?.Invoke(this, new StateChangedEventArgs(null, State));
+    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(null, State));
 
   private async Task HandleReceivedMessageAsync()
   {

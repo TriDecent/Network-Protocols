@@ -69,11 +69,11 @@ public partial class ServerForm : Form
 
     if (e.Message.Type == MessageType.Image)
     {
-      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage(), false);
+      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage());
       return;
     }
 
-    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
+    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content));
   }
 
   private async void BtnStart_Click(object sender, EventArgs e)
