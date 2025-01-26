@@ -3,6 +3,7 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network;
+using System.Diagnostics;
 using System.Text;
 
 namespace ChattingApplication;
@@ -11,6 +12,7 @@ public partial class ServerForm : Form
 {
   private readonly Button _startServerButton, _stopServerButton, _shutdownButton;
   private readonly Button _attachButton, _detachButton;
+  private readonly Button _dmButton;
   private readonly Label _stateLabel;
   private readonly Label _connectedClientsLabel;
   private readonly RichTextBox _chatDisplayArea;
@@ -22,6 +24,8 @@ public partial class ServerForm : Form
 
   private bool _isSendingImage;
 
+  private static ServerOnlineClientsForm? _dmForm;
+
   public ServerForm(Server server)
   {
     InitializeComponent();
@@ -29,6 +33,7 @@ public partial class ServerForm : Form
     _startServerButton = btnStart;
     _stopServerButton = btnStop;
     _shutdownButton = btnShutDown;
+    _dmButton = btnDirectMessage;
     _stateLabel = lblState;
     _connectedClientsLabel = lblConnectedClients;
     _attachButton = btnAttach;
@@ -44,6 +49,15 @@ public partial class ServerForm : Form
     _server.StateChangedEventHandler += OnStateChanged;
     _server.ClientsCountChangedEventHandler += (s, connectedClientsCount)
       => _connectedClientsLabel.Text = connectedClientsCount.ToString();
+
+    _dmButton.Click += (s, e) =>
+    {
+      if (_dmForm is not null) return;
+
+      _dmForm = new ServerOnlineClientsForm(_server);
+      _dmForm.FormClosing += (s, e) => _dmForm = null;
+      _dmForm.Show();
+    };
 
     FormClosing += (s, e) => _server?.Dispose();
   }
@@ -61,6 +75,7 @@ public partial class ServerForm : Form
     _startServerButton.Visible = !isServerActive;
     _stopServerButton.Visible = isServerActive;
     _shutdownButton.Visible = isServerActive;
+    _dmButton.Visible = isServerActive;
   }
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
@@ -95,8 +110,8 @@ public partial class ServerForm : Form
     if (string.IsNullOrEmpty(messageOrFilePath)) return;
 
     var broadcastTask = _isSendingImage ?
-      BroadcastImageAsync(messageOrFilePath) :
-      BroadcastMessageAsync(messageOrFilePath);
+      BroadcastImageAsync(messageOrFilePath, Target.All) :
+      BroadcastMessageAsync(messageOrFilePath, Target.All);
     await broadcastTask;
 
     Action displayingFunc = _isSendingImage ?
@@ -107,24 +122,25 @@ public partial class ServerForm : Form
     ClearServerMessageInput();
   }
 
-  private async Task BroadcastMessageAsync(string content)
+  private async Task BroadcastMessageAsync(string content, Target target)
   {
     var bytes = Encoding.UTF8.GetBytes(content);
-    await BroadcastMessageAsync(bytes, MessageType.Text);
+    await BroadcastMessageAsync(bytes, MessageType.Text, target);
   }
 
-  private async Task BroadcastImageAsync(string filePath)
+  private async Task BroadcastImageAsync(string filePath, Target target)
   {
     var image = Image.FromFile(filePath);
     var bytes = ImageByteConverter.ImageToBytes(image);
 
-    await BroadcastMessageAsync(bytes, MessageType.Image);
+    await BroadcastMessageAsync(bytes, MessageType.Image, target);
   }
 
-  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType)
+  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType, Target target)
   {
     var clientInfo = new ClientInfo("Server");
-    var message = new Core.Models.Message(clientInfo, content, messageType);
+    var message = new Core.Models.Message(
+      clientInfo, content, messageType, target);
 
     await _server.BroadcastMessageToAllClientsAsync(message);
   }

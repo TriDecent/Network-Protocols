@@ -41,6 +41,7 @@
       lblConnected = new Label();
       lblConnectedClients = new Label();
       lblServer = new Label();
+      btnDirectMessage = new Button();
       SuspendLayout();
       // 
       // btnDetach
@@ -174,12 +175,24 @@
       lblServer.TabIndex = 11;
       lblServer.Text = "Server";
       // 
+      // btnDirectMessage
+      // 
+      btnDirectMessage.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnDirectMessage.Location = new Point(149, 10);
+      btnDirectMessage.Name = "btnDirectMessage";
+      btnDirectMessage.Size = new Size(127, 28);
+      btnDirectMessage.TabIndex = 23;
+      btnDirectMessage.Text = "Direct Message";
+      btnDirectMessage.UseVisualStyleBackColor = true;
+      btnDirectMessage.Visible = false;
+      // 
       // ServerForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(522, 527);
+      Controls.Add(btnDirectMessage);
       Controls.Add(lblConnectedClients);
       Controls.Add(lblConnected);
       Controls.Add(btnShutDown);
@@ -215,5 +228,6 @@
     private Label lblConnected;
     private Label lblConnectedClients;
     private Label lblServer;
+    private Button btnDirectMessage;
   }
 }

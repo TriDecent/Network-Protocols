@@ -136,37 +136,37 @@ public partial class ClientForm : Form
     if (message == string.Empty) return;
 
     var sendTask = _isSendingImage ?
-      SendImageAsync(message) :
-      SendMessageAsync(message);
+      SendImageAsync(message, Target.All) :
+      SendMessageAsync(message, Target.All);
 
     await sendTask;
 
     ClearUserMessageInput();
   }
 
-  private async Task SendImageAsync(string filePath)
+  private async Task SendImageAsync(string filePath, Target target)
   {
     var image = Image.FromFile(filePath);
     var bytes = ImageByteConverter.ImageToBytes(image);
 
-    await SendMessageAsync(bytes, MessageType.Image);
+    await SendMessageAsync(bytes, MessageType.Image, target);
 
     _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true);
   }
 
-  private async Task SendMessageAsync(string text)
+  private async Task SendMessageAsync(string text, Target target)
   {
     var bytes = Encoding.UTF8.GetBytes(text);
 
-    await SendMessageAsync(bytes, MessageType.Text);
+    await SendMessageAsync(bytes, MessageType.Text, target);
 
     _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true);
   }
 
-  private async Task SendMessageAsync(byte[] content, MessageType messageType)
+  private async Task SendMessageAsync(byte[] content, MessageType messageType, Target target)
   {
     var clientInfo = new ClientInfo(_client.ClientDetails.Name);
-    var message = new Core.Models.Message(clientInfo, content, messageType);
+    var message = new Core.Models.Message(clientInfo, content, messageType, target);
 
     await _client.SendMessageAsync(message);
   }
