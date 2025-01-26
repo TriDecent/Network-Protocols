@@ -1,10 +1,10 @@
-using System.Net;
-using System.Text;
-using ChattingApplication.Infrastructure.Network;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network;
+using System.Net;
+using System.Text;
 
 namespace ChattingApplication;
 

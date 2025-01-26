@@ -1,13 +1,13 @@
+using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using ChattingApplication.Common.Enums;
-using ChattingApplication.Common.Events;
-using ChattingApplication.Core.Interfaces;
-using ChattingApplication.Core.Models;
 
 namespace ChattingApplication.Infrastructure.Network;
 

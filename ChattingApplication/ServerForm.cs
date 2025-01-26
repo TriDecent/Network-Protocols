@@ -1,9 +1,9 @@
-﻿using System.Text;
-using ChattingApplication.Common.Enums;
+﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network;
+using System.Text;
 
 namespace ChattingApplication;
 

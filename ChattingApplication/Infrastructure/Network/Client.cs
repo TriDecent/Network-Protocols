@@ -1,12 +1,12 @@
-﻿using System.Buffers.Binary;
+﻿using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Events;
+using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using ChattingApplication.Common.Enums;
-using ChattingApplication.Common.Events;
-using ChattingApplication.Core.Interfaces;
-using ChattingApplication.Core.Models;
 using static ChattingApplication.Core.Interfaces.IClient;
 
 namespace ChattingApplication.Infrastructure.Network;
@@ -15,9 +15,8 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private TcpClient _client = tcpClient;
-  private ClientInfo _clientDetails = clientDetails;
   private CancellationTokenSource _cts = new();
-  public ClientInfo ClientDetails { get => _clientDetails; }
+  public ClientInfo ClientDetails { get; private set; } = clientDetails;
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public EventHandler<StateChangedEventArgs>? StatusChangedEventHandler { get; set; }
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
@@ -65,7 +64,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
   }
 
   public void UpdateName(string newName)
-    => _clientDetails = _clientDetails with { Name = newName };
+    => ClientDetails = ClientDetails with { Name = newName };
 
   public async Task SendMessageAsync(Core.Models.Message message)
   {
@@ -91,7 +90,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 
   private async Task TransferClientInfoToServer()
   {
-    var json = JsonSerializer.Serialize(_clientDetails);
+    var json = JsonSerializer.Serialize(ClientDetails);
     var bytes = Encoding.UTF8.GetBytes(json);
 
     var lengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];

@@ -1,7 +1,7 @@
-using System.Net;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Models;
+using System.Net;
 
 namespace ChattingApplication.Core.Interfaces;
 

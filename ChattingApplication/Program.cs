@@ -1,7 +1,7 @@
-using System.Net;
-using System.Net.Sockets;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network;
+using System.Net;
+using System.Net.Sockets;
 
 namespace ChattingApplication
 {

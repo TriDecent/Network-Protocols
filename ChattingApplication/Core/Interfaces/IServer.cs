@@ -1,6 +1,6 @@
-using System.Net;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
+using System.Net;
 
 namespace ChattingApplication.Core.Interfaces;
 
