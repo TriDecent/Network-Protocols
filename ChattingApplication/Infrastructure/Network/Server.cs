@@ -90,8 +90,6 @@ public class Server(TcpListener server) : IServer
         break;
       }
 
-      AddClient(client);
-
       _ = HandleClientAsync(client);
     }
   }
@@ -159,11 +157,33 @@ public class Server(TcpListener server) : IServer
   }
 
   private async Task HandleClientAsync(TcpClient client)
-    => await HandleClientMessagesAsync(client);
+  {
+    var clientInfo = await GetClientSessionInfo(client);
+    AddClient(clientInfo);
+    await HandleClientMessagesAsync(clientInfo);
+  }
 
-  private async Task HandleClientMessagesAsync(TcpClient client)
+  private async Task<ClientSessionInfo> GetClientSessionInfo(TcpClient client)
   {
     var stream = client.GetStream();
+
+    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
+
+    await stream.ReadExactlyAsync(buffer.AsMemory(), _shutdownCTS.Token);
+
+    var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
+    var contentBytes = new byte[contentLength];
+
+    await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
+
+    var clientInfo = JsonSerializer.Deserialize<ClientInfo>(contentBytes)!;
+
+    return new ClientSessionInfo(clientInfo, client);
+  }
+
+  private async Task HandleClientMessagesAsync(ClientSessionInfo client)
+  {
+    var stream = client.Client.GetStream();
 
     var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
     while (!_shutdownCTS.Token.IsCancellationRequested)
