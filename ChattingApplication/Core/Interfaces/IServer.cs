@@ -14,10 +14,11 @@ public interface IServer : IDisposable
   Task BroadcastMessageToAllClientsAsync(Models.Message message);
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
-  int ConnectedClients { get; }
+  IReadOnlyList<ClientSessionInfo> ClientsInfo { get; }
+  int ConnectedClientsCount { get; }
   event EventHandler<int>? ClientsCountChangedEventHandler;
-  event EventHandler<ClientSessionInfo>? ClientConnectedEventHandler;
-  event EventHandler<ClientSessionInfo>? ClientDisconnectedEventHandler;
+  event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
+  event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
   event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
   event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
 }
