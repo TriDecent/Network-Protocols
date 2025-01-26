@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -28,6 +28,7 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
     {
       UpdateState(ClientState.Connecting);
       await _client.ConnectAsync(ipEndPoint);
+      await TransferClientInfoToServer();
       UpdateState(ClientState.Connected);
 
       _ = HandleReceivedMessageAsync().ContinueWith(cancelledTask =>
@@ -63,7 +64,8 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
     UpdateState(ClientState.Disconnected);
   }
 
-  public void UpdateName(string newName) => _clientDetails = _clientDetails with { Name = newName };
+  public void UpdateName(string newName)
+    => _clientDetails = _clientDetails with { Name = newName };
 
   public async Task SendMessageAsync(Core.Models.Message message)
   {
@@ -85,6 +87,22 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
     await memoryStream.WriteAsync(contentBytes);
 
     return memoryStream.ToArray();
+  }
+
+  private async Task TransferClientInfoToServer()
+  {
+    var json = JsonSerializer.Serialize(_clientDetails);
+    var bytes = Encoding.UTF8.GetBytes(json);
+
+    var lengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
+
+    BinaryPrimitives.WriteInt32BigEndian(lengthBytes, bytes.Length);
+
+    using var memoryStream = new MemoryStream();
+    await memoryStream.WriteAsync(lengthBytes);
+    await memoryStream.WriteAsync(bytes);
+
+    await SendBytesAsync(memoryStream.ToArray());
   }
 
   private async Task SendBytesAsync(byte[] bytes)
