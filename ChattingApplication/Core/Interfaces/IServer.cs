@@ -14,7 +14,7 @@ public interface IServer : IDisposable
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   int ConnectedClients { get; }
-  EventHandler<int>? ClientsChangedEventHandler { get; set; }
+  EventHandler<int>? ClientsCountChangedEventHandler { get; set; }
   EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
   EventHandler<StateChangedEventArgs>? StateChangedEventHandler { get; set; }
 }

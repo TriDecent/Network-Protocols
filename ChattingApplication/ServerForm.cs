@@ -42,7 +42,7 @@ public partial class ServerForm : Form
 
     _server.MessageReceivedEventHandler += OnMessageReceived;
     _server.StateChangedEventHandler += OnStateChanged;
-    _server.ClientsChangedEventHandler += (s, connectedClientsCount)
+    _server.ClientsCountChangedEventHandler += (s, connectedClientsCount)
       => _connectedClientsLabel.Text = connectedClientsCount.ToString();
 
     FormClosing += (s, e) => _server?.Dispose();
