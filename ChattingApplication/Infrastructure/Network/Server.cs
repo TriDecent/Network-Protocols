@@ -25,7 +25,17 @@ public class Server(TcpListener server) : IServer
 
   public IPEndPoint ServerEndPoint => (IPEndPoint)_server.LocalEndpoint;
 
-  public int ConnectedClients { get => _clients.Count; }
+  public IReadOnlyList<ClientSessionInfo> ClientsInfo
+  {
+    get
+    {
+      lock (_clients)
+      {
+        return _clients.ToList().AsReadOnly();
+      }
+    }
+  }
+  public int ConnectedClientsCount { get => _clients.Count; }
 
   public event EventHandler<int>? ClientsCountChangedEventHandler;
   public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
