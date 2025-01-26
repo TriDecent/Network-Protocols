@@ -7,6 +7,7 @@ using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
 
 namespace ChattingApplication.Infrastructure.Network;
 
@@ -16,7 +17,7 @@ public class Server(TcpListener server) : IServer
   private readonly TcpListener _server = server;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
-  private readonly List<TcpClient> _clients = [];
+  private readonly List<ClientSessionInfo> _clients = [];
   private bool _isListening = false;
   private bool _isRunning = false;
 
@@ -26,9 +27,11 @@ public class Server(TcpListener server) : IServer
 
   public int ConnectedClients { get => _clients.Count; }
 
-  public EventHandler<int>? ClientsChangedEventHandler { get; set; }
+  public EventHandler<int>? ClientsCountChangedEventHandler { get; set; }
   public EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler { get; set; }
   public EventHandler<StateChangedEventArgs>? StateChangedEventHandler { get; set; }
+  public EventHandler<ClientSessionInfo>? ClientsConnectedEventHandler { get; set; }
+  public EventHandler<ClientSessionInfo>? ClientsDisconnectedEventHandler { get; set; }
 
   public void StartListeningForConnections()
   {
@@ -100,7 +103,7 @@ public class Server(TcpListener server) : IServer
     await BroadcastToClientsCoreAsync(messageBytes);
   }
 
-  private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, TcpClient excludedClient)
+  private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, ClientSessionInfo excludedClient)
   {
     var messageBytes = await SerializeMessageToBytesAsync(message);
     await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
@@ -121,10 +124,10 @@ public class Server(TcpListener server) : IServer
     return memoryStream.ToArray();
   }
 
-  private async Task BroadcastToClientsCoreAsync(byte[] bytes, TcpClient? excludedClient = null)
+  private async Task BroadcastToClientsCoreAsync(byte[] bytes, ClientSessionInfo? excludedClient = null)
   {
-    var copiedClients = new List<TcpClient>();
-    var disconnectedClients = new ConcurrentBag<TcpClient>();
+    var copiedClients = new List<ClientSessionInfo>();
+    var disconnectedClients = new ConcurrentBag<ClientSessionInfo>();
 
     lock (_clients)
     {
@@ -137,7 +140,7 @@ public class Server(TcpListener server) : IServer
       {
         try
         {
-          var stream = client.GetStream();
+          var stream = client.Client.GetStream();
           await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _shutdownCTS.Token);
         }
         catch (IOException) // means clients got disconnected
@@ -211,22 +214,24 @@ public class Server(TcpListener server) : IServer
     }
   }
 
-  private void AddClient(TcpClient client)
+  private void AddClient(ClientSessionInfo client)
   {
     lock (_clients)
     {
       _clients.Add(client);
-      RaiseChangedConnectedClients();
+      RaiseChangedClientsCount();
+      RaiseConnectedClient(client);
     }
   }
 
-  private void RemoveClient(TcpClient client)
+  private void RemoveClient(ClientSessionInfo client)
   {
     lock (_clients)
     {
       _clients.Remove(client);
-      client.Close();
-      RaiseChangedConnectedClients();
+      client.Client.Close();
+      RaiseChangedClientsCount();
+      RaiseDisconnectedClient(client);
     }
   }
 
@@ -239,10 +244,11 @@ public class Server(TcpListener server) : IServer
 
       foreach (var client in clientsToRemove)
       {
-        client.Close();
+        RaiseDisconnectedClient(client);
+        client.Client.Close();
       }
 
-      RaiseChangedConnectedClients();
+      RaiseChangedClientsCount();
     }
   }
 
@@ -259,8 +265,14 @@ public class Server(TcpListener server) : IServer
     => MessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 
-  private void RaiseChangedConnectedClients()
-  => ClientsChangedEventHandler?.Invoke(this, ConnectedClients);
+  private void RaiseChangedClientsCount()
+    => ClientsCountChangedEventHandler?.Invoke(this, ConnectedClients);
+
+  private void RaiseConnectedClient(ClientSessionInfo clientInfo)
+    => ClientsConnectedEventHandler?.Invoke(this, clientInfo);
+
+  private void RaiseDisconnectedClient(ClientSessionInfo clientInfo)
+    => ClientsConnectedEventHandler?.Invoke(this, clientInfo);
 
   public void Dispose()
   {
@@ -274,7 +286,7 @@ public class Server(TcpListener server) : IServer
     {
       foreach (var client in _clients)
       {
-        client.Close();
+        client.Client.Close();
       }
       _clients.Clear();
     }
