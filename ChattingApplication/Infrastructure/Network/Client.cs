@@ -132,7 +132,7 @@ public class Client(
         if (message.Target is Target.All)
         {
           RaiseReceivedBroadcastMessage(message);
-          return;
+          continue;
         }
 
         RaiseReceivedUnicastMessage(message);
