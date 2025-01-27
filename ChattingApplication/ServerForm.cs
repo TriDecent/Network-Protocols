@@ -113,20 +113,20 @@ public partial class ServerForm : Form
   }
 
   private Task SendContent(string content)
-      => _isSendingImage ? SendImage(content) : SendText(content);
+    => _isSendingImage ? SendImageAsync(content) : SendTextAsync(content);
 
-  private async Task SendImage(string filePath)
+  private async Task SendImageAsync(string filePath)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
-        ImageByteConverter.ImageToBytes(image),
-        MessageType.Image);
+      ImageByteConverter.ImageToBytes(image),
+      MessageType.Image);
 
     await SendAndDisplay(message, () =>
-        _chatRenderer.DisplayImage("Server", image, true));
+      _chatRenderer.DisplayImage("Server", image, true));
   }
 
-  private async Task SendText(string text)
+  private async Task SendTextAsync(string text)
   {
     var message = CreateMessage(
       Encoding.UTF8.GetBytes(text),
@@ -149,7 +149,7 @@ public partial class ServerForm : Form
     await _server.BroadcastMessageToAllClientsAsync(message);
     displayAction();
   }
-  
+
   private void BtnAttach_Click(object sender, EventArgs e)
   {
     var openFileDialog = new OpenFileDialog

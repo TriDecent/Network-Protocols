@@ -43,7 +43,7 @@
       // 
       // timerUpdateClientsInfo
       // 
-      timerUpdateClientsInfo.Interval = 5000;
+      timerUpdateClientsInfo.Interval = 1500;
       // 
       // ClientOnlineClientsForm
       // 

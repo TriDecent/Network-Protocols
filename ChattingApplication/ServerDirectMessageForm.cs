@@ -17,7 +17,7 @@ namespace ChattingApplication
 
     private bool _isSendingImage = false;
 
-    public ServerDirectMessageForm(IServer server, ClientSessionInfo clientInfo)
+    public ServerDirectMessageForm(IServer server, ClientSessionInfo recipient)
     {
       InitializeComponent();
 
@@ -29,64 +29,60 @@ namespace ChattingApplication
       _chatDisplayArea = rtbDialogArea;
       _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
-      _clientNameLabel.Text = clientInfo.Info.Name;
-      _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(clientInfo, server);
+      _clientNameLabel.Text = recipient.Info.Name;
+      _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, server);
     }
 
-    private async Task OnSendMessageClickedAsync(ClientSessionInfo clientInfo, IServer server)
+    private async Task OnSendMessageClickedAsync(ClientSessionInfo recipient, IServer server)
     {
-      var message = _messageTextBox.Text.Trim();
+      if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-      if (message == string.Empty) return;
-
-      var sendTask = _isSendingImage ?
-        SendImageAsync(message, Target.Individual, clientInfo, server, MessageRequest.None) :
-        SendMessageAsync(message, Target.Individual, clientInfo, server, MessageRequest.None);
-
-      await sendTask;
-
+      await SendContent(recipient, _messageTextBox.Text, server);
       ClearUserMessageInput();
     }
 
-    private async Task SendImageAsync(
-      string filePath,
-      Target target,
-      ClientSessionInfo clientInfo,
-      IServer server,
-      MessageRequest request)
+    private Task SendContent(ClientSessionInfo recipient, string content, IServer server)
+        => _isSendingImage ?
+        SendImageAsync(recipient, content, server) :
+        SendTextAsync(recipient, content, server);
+
+    private async Task SendImageAsync(ClientSessionInfo recipient, string filePath, IServer server)
     {
-      var image = Image.FromFile(filePath);
-      var bytes = ImageByteConverter.ImageToBytes(image);
+      using var image = Image.FromFile(filePath);
+      var message = CreateMessage(
+        ImageByteConverter.ImageToBytes(image),
+        MessageType.Image);
 
-      await SendMessageAsync(bytes, MessageType.Image, target, clientInfo, server, request);
-
-      _chatRenderer.DisplayImage("Server", image, true);
+      await SendAndDisplayAsync(recipient, message, server, () =>
+        _chatRenderer.DisplayImage("Server", image, true));
     }
 
-    private async Task SendMessageAsync(
-      string text,
-      Target target,
-      ClientSessionInfo clientInfo,
-      IServer server,
-      MessageRequest request)
+    private async Task SendTextAsync(ClientSessionInfo recipient, string text, IServer server)
     {
-      var bytes = Encoding.UTF8.GetBytes(text);
+      var message = CreateMessage(
+        Encoding.UTF8.GetBytes(text),
+        MessageType.Text);
 
-      await SendMessageAsync(bytes, MessageType.Text, target, clientInfo, server, request);
-
-      _chatRenderer.DisplayMessage("Server", text, true);
+      await SendAndDisplayAsync(recipient, message, server, () =>
+        _chatRenderer.DisplayMessage("Server", text, true));
     }
 
-    private static async Task SendMessageAsync(
-      byte[] content,
-      MessageType messageType,
-      Target target,
-      ClientSessionInfo clientInfo,
+    private static Core.Models.Message CreateMessage(byte[] content, MessageType type)
+      => new(
+        new ClientInfo("Server"),
+        content,
+        type,
+        Target.Individual,
+        MessageRequest.None);
+
+    private static async Task SendAndDisplayAsync(
+      ClientSessionInfo recipient,
+      Core.Models.Message message,
       IServer server,
-      MessageRequest request)
+      Action displayAction)
     {
-      var message = new Core.Models.Message(clientInfo.Info, content, messageType, target, request);
-      await server.SendUnicastMessageAsync(clientInfo, message);
+      await server.SendUnicastMessageAsync(recipient, message);
+      displayAction();
     }
 
     private void BtnAttach_Click(object sender, EventArgs e)

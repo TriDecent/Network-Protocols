@@ -29,24 +29,23 @@ namespace ChattingApplication
         _ = client.SendMessageAsync(
           new Core.Models.Message(
             client.ClientDetails, [], MessageType.Any, Target.Server, MessageRequest.GetClientsInfo));
-      
+
       _timerUpdateClients.Start();
 
       _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(client);
     }
     private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
     {
-      var message = e.Message;
-      if (message.Type is MessageType.ActiveClientsInfo)
-      {
-        var clientsInfo = JsonSerializer.Deserialize<IEnumerable<ClientInfo>>(message.Content);
-        DisplayOnlineClients(clientsInfo!);
-      }
+      if (e.Message.Type is not MessageType.ActiveClientsInfo) return;
+
+      var clientsInfo = JsonSerializer.Deserialize<IEnumerable<ClientInfo>>(e.Message.Content);
+      DisplayOnlineClients(clientsInfo!);
     }
 
     private void DisplayOnlineClients(IEnumerable<ClientInfo> clientsInfo)
     {
       _lvOnlineClients.Items.Clear();
+      _lvOnlineClients.Items.Add(new ListViewItem("Server"));
 
       foreach (var clientInfo in clientsInfo)
       {
@@ -60,7 +59,8 @@ namespace ChattingApplication
 
     private void OnClientDoubleClick(IClient client)
     {
-      throw new NotImplementedException();
+      // temp
+      new ClientDirectMessageForm(new ClientInfo("Server"), client).Show();
     }
   }
 }
