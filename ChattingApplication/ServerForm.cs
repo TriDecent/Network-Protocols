@@ -106,45 +106,50 @@ public partial class ServerForm : Form
 
   private async void BtnSend_ClickAsync(object sender, EventArgs e)
   {
-    var messageOrFilePath = _messageTextbox.Text.Trim();
-    if (string.IsNullOrEmpty(messageOrFilePath)) return;
+    if (string.IsNullOrWhiteSpace(_messageTextbox.Text)) return;
 
-    var broadcastTask = _isSendingImage ?
-      BroadcastImageAsync(messageOrFilePath, Target.All, MessageRequest.None) :
-      BroadcastMessageAsync(messageOrFilePath, Target.All, MessageRequest.None);
-    await broadcastTask;
-
-    Action displayingFunc = _isSendingImage ?
-      () => _chatRenderer.DisplayImage("Server", Image.FromFile(messageOrFilePath), true) :
-      () => _chatRenderer.DisplayMessage("Server", messageOrFilePath, true);
-
-    displayingFunc();
+    await SendContent(_messageTextbox.Text);
     ClearServerMessageInput();
   }
 
-  private async Task BroadcastMessageAsync(string content, Target target, MessageRequest request)
+  private Task SendContent(string content)
+      => _isSendingImage ? SendImage(content) : SendText(content);
+
+  private async Task SendImage(string filePath)
   {
-    var bytes = Encoding.UTF8.GetBytes(content);
-    await BroadcastMessageAsync(bytes, MessageType.Text, target, request);
+    using var image = Image.FromFile(filePath);
+    var message = CreateMessage(
+        ImageByteConverter.ImageToBytes(image),
+        MessageType.Image);
+
+    await SendAndDisplay(message, () =>
+        _chatRenderer.DisplayImage("Server", image, true));
   }
 
-  private async Task BroadcastImageAsync(string filePath, Target target, MessageRequest request)
+  private async Task SendText(string text)
   {
-    var image = Image.FromFile(filePath);
-    var bytes = ImageByteConverter.ImageToBytes(image);
+    var message = CreateMessage(
+      Encoding.UTF8.GetBytes(text),
+      MessageType.Text);
 
-    await BroadcastMessageAsync(bytes, MessageType.Image, target, request);
+    await SendAndDisplay(message, () =>
+      _chatRenderer.DisplayMessage("Server", text, true));
   }
 
-  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType, Target target, MessageRequest request)
-  {
-    var clientInfo = new ClientInfo("Server");
-    var message = new Core.Models.Message(
-      clientInfo, content, messageType, target, request);
+  private static Core.Models.Message CreateMessage(byte[] content, MessageType type)
+    => new(
+      new ClientInfo("Server"),
+      content,
+      type,
+      Target.All,
+      MessageRequest.None);
 
+  private async Task SendAndDisplay(Core.Models.Message message, Action displayAction)
+  {
     await _server.BroadcastMessageToAllClientsAsync(message);
+    displayAction();
   }
-
+  
   private void BtnAttach_Click(object sender, EventArgs e)
   {
     var openFileDialog = new OpenFileDialog
