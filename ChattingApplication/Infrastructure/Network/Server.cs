@@ -40,7 +40,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
   public int ConnectedClientsCount { get => _clients.Count; }
 
   public event EventHandler<int>? ClientsCountChangedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
   public event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
   public event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
@@ -267,7 +267,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
     => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
 
   private void RaiseReceivedMessage(Core.Models.Message message)
-    => MessageReceivedEventHandler?.Invoke(
+    => BroadcastMessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 
   private void RaiseChangedClientsCount()

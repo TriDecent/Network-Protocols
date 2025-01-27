@@ -18,8 +18,7 @@ namespace ChattingApplication
       _lvOnlineClients.MultiSelect = false;
       _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-      _lvOnlineClients.DoubleClick += OnClientDoubleClick;
-
+      _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(server);
 
       var clientsInfo = server.ClientsInfo;
       DisplayClientsInfo(clientsInfo);
@@ -34,7 +33,7 @@ namespace ChattingApplication
 
       foreach (var clientInfo in clientsInfo)
       {
-        var item = new ListViewItem(clientInfo.ToString())
+        var item = new ListViewItem(clientInfo.Info.Name)
         {
           Tag = clientInfo
         };
@@ -50,7 +49,7 @@ namespace ChattingApplication
         return;
       }
 
-      var item = new ListViewItem(e.ClientSessionInfo.ToString())
+      var item = new ListViewItem(e.ClientSessionInfo.Info.Name)
       {
         Tag = e.ClientSessionInfo
       };
@@ -75,15 +74,14 @@ namespace ChattingApplication
       }
     }
 
-    private void OnClientDoubleClick(object? sender, EventArgs e)
+    private void OnClientDoubleClick(IServer server)
     {
       if (_lvOnlineClients.SelectedItems.Count == 0) return;
 
       var selectedItem = _lvOnlineClients.SelectedItems[0];
       var clientInfo = (ClientSessionInfo)selectedItem.Tag!;
 
-      // TODO: Open DM form with selected client
-      // new DirectMessageForm(_server, clientInfo).Show();
+      new ServerDirectMessageForm(server, clientInfo).Show();
     }
   }
 }

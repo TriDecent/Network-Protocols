@@ -45,7 +45,7 @@ public partial class ServerForm : Form
 
     _server = server;
 
-    _server.MessageReceivedEventHandler += OnMessageReceived;
+    _server.BroadcastMessageReceivedEventHandler += OnMessageReceived;
     _server.StateChangedEventHandler += OnStateChanged;
     _server.ClientsCountChangedEventHandler += (s, connectedClientsCount)
       => _connectedClientsLabel.Text = connectedClientsCount.ToString();

@@ -1,6 +1,6 @@
 ﻿namespace ChattingApplication
 {
-  partial class DirectMessageForm
+  partial class ServerDirectMessageForm
   {
     /// <summary>
     /// Required designer variable.
