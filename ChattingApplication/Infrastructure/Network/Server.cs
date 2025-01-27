@@ -212,7 +212,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
           message.Target is Target.Server)
         {
           _ = TransferClientsInfoToClientAsync(client);
-          return;
+          continue;
         }
 
         RaiseReceivedBroadcastMessage(message);
