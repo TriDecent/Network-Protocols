@@ -31,6 +31,7 @@ namespace ChattingApplication
     private void DisplayClientsInfo(IEnumerable<ClientSessionInfo> clientsInfo)
     {
       _lvOnlineClients.Items.Clear();
+
       foreach (var clientInfo in clientsInfo)
       {
         var item = new ListViewItem(clientInfo.ToString())
