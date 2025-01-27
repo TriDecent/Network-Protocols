@@ -4,5 +4,6 @@ public enum MessageType
 {
   Text,
   Image,
+  ActiveClientsInfo,
   Any
 }
