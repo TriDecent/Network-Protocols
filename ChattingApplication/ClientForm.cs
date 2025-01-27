@@ -25,8 +25,6 @@ public partial class ClientForm : Form
 
   private bool _isSendingImage = false;
 
-  private static ClientOnlineClientsForm? _dmForm;
-
   public ClientForm(Client client)
   {
     InitializeComponent();
@@ -66,14 +64,8 @@ public partial class ClientForm : Form
     _serverIPTextBox.TextChanged += (s, e) =>
       EnableConnectButtonBasedOnServerInput();
 
-    _directMessageButton.Click += (s, e) =>
-    {
-      if (_dmForm is not null) return;
-
-      _dmForm = new ClientOnlineClientsForm(_client);
-      _dmForm.FormClosing += (s, e) => _dmForm = null;
-      _dmForm.Show();
-    };
+    _directMessageButton.Click += (s, e) 
+      => new ClientOnlineClientsForm(_client).Show();
   }
 
   private void EnableConnectButtonBasedOnServerInput()
