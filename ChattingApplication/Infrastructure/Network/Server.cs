@@ -111,9 +111,16 @@ public class Server(TcpListener server) : IServer
     }
   }
 
+  public async Task SendUnicastMessageAsync(ClientSessionInfo clientInfo, Core.Models.Message message)
+  {
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    var clientStream = clientInfo.Client.GetStream();
+    await clientStream.WriteAsync(messageBytes, _shutdownCTS.Token);
+  }
+
   public async Task BroadcastMessageToAllClientsAsync(Core.Models.Message message)
   {
-    var messageBytes = await SerializeMessageToBytesAsync(message);
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
     await BroadcastToClientsCoreAsync(messageBytes);
   }
 

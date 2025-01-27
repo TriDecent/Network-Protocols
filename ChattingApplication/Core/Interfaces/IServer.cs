@@ -12,6 +12,7 @@ public interface IServer : IDisposable
   void ShutdownAllConnections();
   Task HandleIncomingConnectionsAsync();
   Task BroadcastMessageToAllClientsAsync(Models.Message message);
+  Task SendUnicastMessageAsync(ClientSessionInfo clientInfo, Models.Message message);
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   IReadOnlyList<ClientSessionInfo> ClientsInfo { get; }
