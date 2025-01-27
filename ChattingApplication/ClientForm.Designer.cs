@@ -43,6 +43,7 @@
       lblServerPort = new Label();
       txtName = new TextBox();
       lblName = new Label();
+      btnDirectMessage = new Button();
       SuspendLayout();
       // 
       // txtMessage
@@ -189,12 +190,24 @@
       lblName.TabIndex = 13;
       lblName.Text = "Client Name";
       // 
+      // btnDirectMessage
+      // 
+      btnDirectMessage.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnDirectMessage.Location = new Point(322, 14);
+      btnDirectMessage.Name = "btnDirectMessage";
+      btnDirectMessage.Size = new Size(84, 28);
+      btnDirectMessage.TabIndex = 14;
+      btnDirectMessage.Text = "DM";
+      btnDirectMessage.UseVisualStyleBackColor = true;
+      btnDirectMessage.Visible = false;
+      // 
       // ClientForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(528, 543);
+      Controls.Add(btnDirectMessage);
       Controls.Add(lblName);
       Controls.Add(txtName);
       Controls.Add(txtServerPort);
@@ -234,5 +247,6 @@
     private Label lblServerPort;
     private TextBox txtName;
     private Label lblName;
+    private Button btnDirectMessage;
   }
 }
