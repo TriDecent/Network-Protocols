@@ -5,15 +5,13 @@ using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 
 namespace ChattingApplication.Infrastructure.Network;
 
-public class Server(TcpListener server) : IServer
+public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private readonly TcpListener _server = server;
@@ -185,7 +183,8 @@ public class Server(TcpListener server) : IServer
 
     await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
 
-    var clientInfo = JsonSerializer.Deserialize<ClientInfo>(contentBytes)!;
+    var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
+    var clientInfo = message.Client;
 
     return new ClientSessionInfo(clientInfo, client);
   }
