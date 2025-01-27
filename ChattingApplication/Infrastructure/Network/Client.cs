@@ -1,7 +1,8 @@
-using ChattingApplication.Common.Enums;
+﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Core.Serializers;
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
@@ -18,8 +19,9 @@ public class Client(
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private TcpClient _client = tcpClient;
-  private CancellationTokenSource _cts = new();
+  private readonly IMessageSerializer _serializer = serializer;
   public ClientInfo ClientDetails { get; private set; } = clientDetails;
+  private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
   public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
@@ -78,16 +80,8 @@ public class Client(
 
   private async Task TransferClientInfoToServer()
   {
-    var json = JsonSerializer.Serialize(ClientDetails);
-    var bytes = Encoding.UTF8.GetBytes(json);
-
-    var lengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-
-    BinaryPrimitives.WriteInt32BigEndian(lengthBytes, bytes.Length);
-
-    using var memoryStream = new MemoryStream();
-    await memoryStream.WriteAsync(lengthBytes);
-    await memoryStream.WriteAsync(bytes);
+    var message = new Core.Models.Message(
+      ClientDetails, [], MessageType.Any, Target.Server);
 
     await SendMessageAsync(message);
   }
