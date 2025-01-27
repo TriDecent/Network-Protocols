@@ -14,7 +14,8 @@ public interface IClient : IDisposable
   ClientInfo ClientDetails { get; }
   ClientState State { get; }
   event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
+  event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
 
   public class ConnectionResult
   {

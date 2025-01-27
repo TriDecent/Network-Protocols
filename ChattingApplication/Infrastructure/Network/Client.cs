@@ -6,7 +6,6 @@ using ChattingApplication.Core.Serializers;
 using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using static ChattingApplication.Core.Interfaces.IClient;
 
@@ -24,7 +23,8 @@ public class Client(
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -81,7 +81,7 @@ public class Client(
   private async Task TransferClientInfoToServer()
   {
     var message = new Core.Models.Message(
-      ClientDetails, [], MessageType.Any, Target.Server);
+      ClientDetails, [], MessageType.Any, Target.Server, MessageRequest.None);
 
     await SendMessageAsync(message);
   }
@@ -129,7 +129,13 @@ public class Client(
 
         var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
 
-        RaiseReceivedMessage(message);
+        if (message.Target is Target.All)
+        {
+          RaiseReceivedBroadcastMessage(message);
+          return;
+        }
+
+        RaiseReceivedUnicastMessage(message);
       }
       catch (EndOfStreamException)
       {
@@ -139,8 +145,12 @@ public class Client(
     }
   }
 
-  private void RaiseReceivedMessage(Core.Models.Message message)
-    => MessageReceivedEventHandler?.Invoke(
+  private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
+    => BroadcastMessageReceivedEventHandler?.Invoke(
+      this, new MessageReceivedEventArgs(message, message.Type));
+
+  private void RaiseReceivedUnicastMessage(Core.Models.Message message)
+    => UnicastMessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 
   private static string GetSocketErrorMessage(SocketError errorCode) => errorCode switch
