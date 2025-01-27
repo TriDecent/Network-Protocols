@@ -2,6 +2,7 @@ using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Core.Serializers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
@@ -16,9 +17,11 @@ public class Server(TcpListener server) : IServer
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private readonly TcpListener _server = server;
+  private readonly IMessageSerializer _serializer = serializer;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<ClientSessionInfo> _clients = [];
+
   private bool _isListening = false;
   private bool _isRunning = false;
 
@@ -116,26 +119,11 @@ public class Server(TcpListener server) : IServer
 
   private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, ClientSessionInfo excludedClient)
   {
-    var messageBytes = await SerializeMessageToBytesAsync(message);
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
     await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
   }
 
-  private static async Task<byte[]> SerializeMessageToBytesAsync(Core.Models.Message message)
-  {
-    var jsonMessage = JsonSerializer.Serialize(message);
-    var contentLengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-    var contentBytes = Encoding.UTF8.GetBytes(jsonMessage);
-
-    BinaryPrimitives.WriteInt32BigEndian(contentLengthBytes, contentBytes.Length);
-
-    using var memoryStream = new MemoryStream();
-    await memoryStream.WriteAsync(contentLengthBytes);
-    await memoryStream.WriteAsync(contentBytes);
-
-    return memoryStream.ToArray();
-  }
-
-  private async Task BroadcastToClientsCoreAsync(byte[] bytes, ClientSessionInfo? excludedClient = null)
+  private async Task BroadcastToClientsCoreAsync(ReadOnlyMemory<byte> bytes, ClientSessionInfo? excludedClient = null)
   {
     var copiedClients = new List<ClientSessionInfo>();
     var disconnectedClients = new ConcurrentBag<ClientSessionInfo>();
@@ -152,7 +140,7 @@ public class Server(TcpListener server) : IServer
         try
         {
           var stream = client.Client.GetStream();
-          await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), _shutdownCTS.Token);
+          await stream.WriteAsync(bytes, _shutdownCTS.Token);
         }
         catch (IOException) // means clients got disconnected
         {

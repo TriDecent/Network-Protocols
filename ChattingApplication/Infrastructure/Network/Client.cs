@@ -1,4 +1,4 @@
-﻿using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
@@ -11,7 +11,10 @@ using static ChattingApplication.Core.Interfaces.IClient;
 
 namespace ChattingApplication.Infrastructure.Network;
 
-public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
+public class Client(
+  TcpClient tcpClient,
+  ClientInfo clientDetails,
+  IMessageSerializer serializer) : IClient
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private TcpClient _client = tcpClient;
@@ -68,24 +71,9 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
 
   public async Task SendMessageAsync(Core.Models.Message message)
   {
-    var messageBytes = await SerializeMessageToBytesAsync(message);
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
 
     await SendBytesAsync(messageBytes);
-  }
-
-  private static async Task<byte[]> SerializeMessageToBytesAsync(Core.Models.Message message)
-  {
-    var jsonMessage = JsonSerializer.Serialize(message);
-    var contentLengthBytes = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-    var contentBytes = Encoding.UTF8.GetBytes(jsonMessage);
-
-    BinaryPrimitives.WriteInt32BigEndian(contentLengthBytes, contentBytes.Length);
-
-    using var memoryStream = new MemoryStream();
-    await memoryStream.WriteAsync(contentLengthBytes);
-    await memoryStream.WriteAsync(contentBytes);
-
-    return memoryStream.ToArray();
   }
 
   private async Task TransferClientInfoToServer()
@@ -101,10 +89,10 @@ public class Client(TcpClient tcpClient, ClientInfo clientDetails) : IClient
     await memoryStream.WriteAsync(lengthBytes);
     await memoryStream.WriteAsync(bytes);
 
-    await SendBytesAsync(memoryStream.ToArray());
+    await SendMessageAsync(message);
   }
 
-  private async Task SendBytesAsync(byte[] bytes)
+  private async Task SendBytesAsync(ReadOnlyMemory<byte> bytes)
   {
     var stream = _client.GetStream();
     try
