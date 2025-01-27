@@ -7,6 +7,7 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 
 namespace ChattingApplication.Infrastructure.Network;
@@ -184,7 +185,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
     await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
 
     var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
-    var clientInfo = message.Client;
+    var clientInfo = message.Sender;
 
     return new ClientSessionInfo(clientInfo, client);
   }
@@ -207,7 +208,14 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
         var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
 
-        RaiseReceivedMessage(message);
+        if (message.Request is MessageRequest.GetClientsInfo &&
+          message.Target is Target.Server)
+        {
+          _ = TransferClientsInfoToClientAsync(client);
+          return;
+        }
+
+        RaiseReceivedBroadcastMessage(message);
 
         await BroadcastMessageToClientsExceptAsync(message, client);
       }
@@ -217,6 +225,26 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
         break;
       }
     }
+  }
+
+  private Task TransferClientsInfoToClientAsync(ClientSessionInfo client)
+  {
+    IEnumerable<ClientInfo> clientsInfo = [];
+    lock (_clients)
+    {
+      clientsInfo = _clients.Select(client => client.Info);
+    }
+
+    var json = JsonSerializer.Serialize(clientsInfo);
+    var contentBytes = Encoding.UTF8.GetBytes(json);
+    var message = new Core.Models.Message(
+      new ClientInfo("Server"),
+      contentBytes,
+      MessageType.ActiveClientsInfo,
+      Target.Individual,
+      MessageRequest.None);
+
+    return SendUnicastMessageAsync(client, message);
   }
 
   private void AddClient(ClientSessionInfo client)
@@ -266,7 +294,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
   private void RaiseChangedState()
     => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
 
-  private void RaiseReceivedMessage(Core.Models.Message message)
+  private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
     => BroadcastMessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 

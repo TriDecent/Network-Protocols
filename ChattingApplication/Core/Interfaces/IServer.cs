@@ -20,6 +20,7 @@ public interface IServer : IDisposable
   event EventHandler<int>? ClientsCountChangedEventHandler;
   event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
   event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? MessageReceivedEventHandler;
+  event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
+  // event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
   event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
 }
