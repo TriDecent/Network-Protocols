@@ -80,7 +80,7 @@ public partial class ServerForm : Form
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
-    var messageOwner = e.Message.Client.Name;
+    var messageOwner = e.Message.Sender.Name;
 
     if (e.Message.Type == MessageType.Image)
     {
@@ -110,8 +110,8 @@ public partial class ServerForm : Form
     if (string.IsNullOrEmpty(messageOrFilePath)) return;
 
     var broadcastTask = _isSendingImage ?
-      BroadcastImageAsync(messageOrFilePath, Target.All) :
-      BroadcastMessageAsync(messageOrFilePath, Target.All);
+      BroadcastImageAsync(messageOrFilePath, Target.All, MessageRequest.None) :
+      BroadcastMessageAsync(messageOrFilePath, Target.All, MessageRequest.None);
     await broadcastTask;
 
     Action displayingFunc = _isSendingImage ?
@@ -122,25 +122,25 @@ public partial class ServerForm : Form
     ClearServerMessageInput();
   }
 
-  private async Task BroadcastMessageAsync(string content, Target target)
+  private async Task BroadcastMessageAsync(string content, Target target, MessageRequest request)
   {
     var bytes = Encoding.UTF8.GetBytes(content);
-    await BroadcastMessageAsync(bytes, MessageType.Text, target);
+    await BroadcastMessageAsync(bytes, MessageType.Text, target, request);
   }
 
-  private async Task BroadcastImageAsync(string filePath, Target target)
+  private async Task BroadcastImageAsync(string filePath, Target target, MessageRequest request)
   {
     var image = Image.FromFile(filePath);
     var bytes = ImageByteConverter.ImageToBytes(image);
 
-    await BroadcastMessageAsync(bytes, MessageType.Image, target);
+    await BroadcastMessageAsync(bytes, MessageType.Image, target, request);
   }
 
-  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType, Target target)
+  private async Task BroadcastMessageAsync(byte[] content, MessageType messageType, Target target, MessageRequest request)
   {
     var clientInfo = new ClientInfo("Server");
     var message = new Core.Models.Message(
-      clientInfo, content, messageType, target);
+      clientInfo, content, messageType, target, request);
 
     await _server.BroadcastMessageToAllClientsAsync(message);
   }

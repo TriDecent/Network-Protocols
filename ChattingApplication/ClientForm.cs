@@ -14,6 +14,7 @@ public partial class ClientForm : Form
   private readonly Button _disconnectServerButton;
   private readonly Button _attachItemButton;
   private readonly Button _detachItemButton;
+  private readonly Button _directMessageButton;
   private readonly RichTextBox _chatDisplayArea;
   private readonly TextBox _messageTextBox;
   private readonly TextBox _serverIPTextBox, _serverPortTextBox;
@@ -24,6 +25,8 @@ public partial class ClientForm : Form
 
   private bool _isSendingImage = false;
 
+  private static ClientOnlineClientsForm? _dmForm;
+
   public ClientForm(Client client)
   {
     InitializeComponent();
@@ -32,6 +35,7 @@ public partial class ClientForm : Form
     _disconnectServerButton = btnDisconnectServer;
     _attachItemButton = btnAttach;
     _detachItemButton = btnDetach;
+    _directMessageButton = btnDirectMessage;
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
     _stateLabel = lblState;
@@ -44,7 +48,7 @@ public partial class ClientForm : Form
     _client = client;
 
     _client.StateChangedEventHandler += OnStatusChanged;
-    _client.MessageReceivedEventHandler += OnMessageReceived;
+    _client.BroadcastMessageReceivedEventHandler += OnBroadcastMessageReceived;
 
     FormClosing += (s, e) => _client?.Dispose();
 
@@ -61,6 +65,15 @@ public partial class ClientForm : Form
 
     _serverIPTextBox.TextChanged += (s, e) =>
       EnableConnectButtonBasedOnServerInput();
+
+    _directMessageButton.Click += (s, e) =>
+    {
+      if (_dmForm is not null) return;
+
+      _dmForm = new ClientOnlineClientsForm(_client);
+      _dmForm.FormClosing += (s, e) => _dmForm = null;
+      _dmForm.Show();
+    };
   }
 
   private void EnableConnectButtonBasedOnServerInput()
@@ -91,10 +104,12 @@ public partial class ClientForm : Form
 
     _connectServerButton.Visible = !isConnected;
     _disconnectServerButton.Visible = isConnected;
+
+    _directMessageButton.Visible = isConnected;
   }
-  private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
+  private void OnBroadcastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
-    var messageOwner = e.Message.Client.Name;
+    var messageOwner = e.Message.Sender.Name;
 
     if (e.Message.Type == MessageType.Image)
     {
@@ -136,37 +151,37 @@ public partial class ClientForm : Form
     if (message == string.Empty) return;
 
     var sendTask = _isSendingImage ?
-      SendImageAsync(message, Target.All) :
-      SendMessageAsync(message, Target.All);
+      SendImageAsync(message, Target.All, MessageRequest.None) :
+      SendMessageAsync(message, Target.All, MessageRequest.None);
 
     await sendTask;
 
     ClearUserMessageInput();
   }
 
-  private async Task SendImageAsync(string filePath, Target target)
+  private async Task SendImageAsync(string filePath, Target target, MessageRequest request)
   {
     var image = Image.FromFile(filePath);
     var bytes = ImageByteConverter.ImageToBytes(image);
 
-    await SendMessageAsync(bytes, MessageType.Image, target);
+    await SendMessageAsync(bytes, MessageType.Image, target, request);
 
     _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true);
   }
 
-  private async Task SendMessageAsync(string text, Target target)
+  private async Task SendMessageAsync(string text, Target target, MessageRequest request)
   {
     var bytes = Encoding.UTF8.GetBytes(text);
 
-    await SendMessageAsync(bytes, MessageType.Text, target);
+    await SendMessageAsync(bytes, MessageType.Text, target, request);
 
     _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true);
   }
 
-  private async Task SendMessageAsync(byte[] content, MessageType messageType, Target target)
+  private async Task SendMessageAsync(byte[] content, MessageType messageType, Target target, MessageRequest request)
   {
     var clientInfo = new ClientInfo(_client.ClientDetails.Name);
-    var message = new Core.Models.Message(clientInfo, content, messageType, target);
+    var message = new Core.Models.Message(clientInfo, content, messageType, target, request);
 
     await _client.SendMessageAsync(message);
   }

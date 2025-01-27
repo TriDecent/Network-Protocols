@@ -40,8 +40,8 @@ namespace ChattingApplication
       if (message == string.Empty) return;
 
       var sendTask = _isSendingImage ?
-        SendImageAsync(message, Target.Individual, clientInfo, server) :
-        SendMessageAsync(message, Target.Individual, clientInfo, server);
+        SendImageAsync(message, Target.Individual, clientInfo, server, MessageRequest.None) :
+        SendMessageAsync(message, Target.Individual, clientInfo, server, MessageRequest.None);
 
       await sendTask;
 
@@ -52,12 +52,13 @@ namespace ChattingApplication
       string filePath,
       Target target,
       ClientSessionInfo clientInfo,
-      IServer server)
+      IServer server,
+      MessageRequest request)
     {
       var image = Image.FromFile(filePath);
       var bytes = ImageByteConverter.ImageToBytes(image);
 
-      await SendMessageAsync(bytes, MessageType.Image, target, clientInfo, server);
+      await SendMessageAsync(bytes, MessageType.Image, target, clientInfo, server, request);
 
       _chatRenderer.DisplayImage("Server", image, true);
     }
@@ -66,11 +67,12 @@ namespace ChattingApplication
       string text,
       Target target,
       ClientSessionInfo clientInfo,
-      IServer server)
+      IServer server,
+      MessageRequest request)
     {
       var bytes = Encoding.UTF8.GetBytes(text);
 
-      await SendMessageAsync(bytes, MessageType.Text, target, clientInfo, server);
+      await SendMessageAsync(bytes, MessageType.Text, target, clientInfo, server, request);
 
       _chatRenderer.DisplayMessage("Server", text, true);
     }
@@ -80,9 +82,10 @@ namespace ChattingApplication
       MessageType messageType,
       Target target,
       ClientSessionInfo clientInfo,
-      IServer server)
+      IServer server,
+      MessageRequest request)
     {
-      var message = new Core.Models.Message(clientInfo.Info, content, messageType, target);
+      var message = new Core.Models.Message(clientInfo.Info, content, messageType, target, request);
       await server.SendUnicastMessageAsync(clientInfo, message);
     }
 
