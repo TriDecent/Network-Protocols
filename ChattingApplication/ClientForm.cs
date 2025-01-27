@@ -144,46 +144,49 @@ public partial class ClientForm : Form
 
   private async void BtnSend_Click(object sender, EventArgs e)
   {
-    if (_client.State != ClientState.Connected) return;
+    if (_client.State != ClientState.Connected ||
+        string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-    var message = _messageTextBox.Text.Trim();
-
-    if (message == string.Empty) return;
-
-    var sendTask = _isSendingImage ?
-      SendImageAsync(message, Target.All, MessageRequest.None) :
-      SendMessageAsync(message, Target.All, MessageRequest.None);
-
-    await sendTask;
-
+    await SendContentAsync(_messageTextBox.Text);
     ClearUserMessageInput();
   }
 
-  private async Task SendImageAsync(string filePath, Target target, MessageRequest request)
+  private Task SendContentAsync(string content)
+      => _isSendingImage ? SendImageAsync(content) : SendTextAsync(content);
+
+  private async Task SendImageAsync(string filePath)
   {
-    var image = Image.FromFile(filePath);
-    var bytes = ImageByteConverter.ImageToBytes(image);
+    using var image = Image.FromFile(filePath);
+    var message = CreateMessage(
+        ImageByteConverter.ImageToBytes(image),
+        MessageType.Image);
 
-    await SendMessageAsync(bytes, MessageType.Image, target, request);
-
-    _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true);
+    await SendAndDisplayAsync(message, () =>
+      _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true));
   }
 
-  private async Task SendMessageAsync(string text, Target target, MessageRequest request)
+  private async Task SendTextAsync(string text)
   {
-    var bytes = Encoding.UTF8.GetBytes(text);
+    var message = CreateMessage(
+        Encoding.UTF8.GetBytes(text),
+        MessageType.Text);
 
-    await SendMessageAsync(bytes, MessageType.Text, target, request);
-
-    _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true);
+    await SendAndDisplayAsync(message, () =>
+        _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true));
   }
 
-  private async Task SendMessageAsync(byte[] content, MessageType messageType, Target target, MessageRequest request)
-  {
-    var clientInfo = new ClientInfo(_client.ClientDetails.Name);
-    var message = new Core.Models.Message(clientInfo, content, messageType, target, request);
+  private Core.Models.Message CreateMessage(byte[] content, MessageType type)
+    => new(
+      new ClientInfo(_client.ClientDetails.Name),
+      content,
+      type,
+      Target.All,
+      MessageRequest.None);
 
+  private async Task SendAndDisplayAsync(Core.Models.Message message, Action displayAction)
+  {
     await _client.SendMessageAsync(message);
+    displayAction();
   }
 
   private void BtnAttach_Click(object sender, EventArgs e)
