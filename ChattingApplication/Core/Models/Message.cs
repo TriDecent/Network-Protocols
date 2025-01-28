@@ -8,4 +8,4 @@ public record Message(
   MessageType Type,
   Target Target,
   MessageRequest Request,
-  string? RecipientId = null);
+  ClientInfo? Recipient = null);
