@@ -64,8 +64,8 @@ public partial class ClientForm : Form
     _serverIPTextBox.TextChanged += (s, e) =>
       EnableConnectButtonBasedOnServerInput();
 
-    _directMessageButton.Click += (s, e) 
-      => new ClientOnlineClientsForm(_client).Show();
+    _directMessageButton.Click += (s, e)
+      => new ClientOnlineClientsForm(_client.ClientInfo, _client).Show();
   }
 
   private void EnableConnectButtonBasedOnServerInput()
@@ -154,7 +154,7 @@ public partial class ClientForm : Form
         MessageType.Image);
 
     await SendAndDisplayAsync(message, () =>
-      _chatRenderer.DisplayImage(_client.ClientDetails.Name, image, true));
+      _chatRenderer.DisplayImage(_client.ClientInfo.Name, image, true));
   }
 
   private async Task SendTextAsync(string text)
@@ -164,12 +164,12 @@ public partial class ClientForm : Form
         MessageType.Text);
 
     await SendAndDisplayAsync(message, () =>
-        _chatRenderer.DisplayMessage(_client.ClientDetails.Name, text, true));
+        _chatRenderer.DisplayMessage(_client.ClientInfo.Name, text, true));
   }
 
   private Core.Models.Message CreateMessage(byte[] content, MessageType type)
     => new(
-      new ClientInfo(_client.ClientDetails.Name),
+      _client.ClientInfo,
       content,
       type,
       Target.All,

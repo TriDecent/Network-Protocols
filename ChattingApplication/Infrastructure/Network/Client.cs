@@ -1,4 +1,4 @@
-using ChattingApplication.Common.Enums;
+﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
@@ -19,7 +19,7 @@ public class Client(
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private TcpClient _client = tcpClient;
   private readonly IMessageSerializer _serializer = serializer;
-  public ClientInfo ClientDetails { get; private set; } = clientDetails;
+  public ClientInfo ClientInfo { get; private set; } = clientDetails;
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
@@ -70,7 +70,7 @@ public class Client(
   }
 
   public void UpdateName(string newName)
-    => ClientDetails = ClientDetails with { Name = newName };
+    => ClientInfo = ClientInfo with { Name = newName };
 
   public async Task SendMessageAsync(Core.Models.Message message)
   {

@@ -11,7 +11,7 @@ public interface IClient : IDisposable
   void DisconnectFromServer();
   Task SendMessageAsync(Models.Message message);
   void UpdateName(string newName);
-  ClientInfo ClientDetails { get; }
+  ClientInfo ClientInfo { get; }
   ClientState State { get; }
   event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
   event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
