@@ -15,6 +15,7 @@ namespace ChattingApplication.Infrastructure.Network;
 public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
+  private static readonly ClientInfo SERVER_INFO = new("0", "Server");
   private readonly TcpListener _server = server;
   private readonly IMessageSerializer _serializer = serializer;
   private CancellationTokenSource _listeningCTS = new();
@@ -167,12 +168,12 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
   private async Task HandleClientAsync(TcpClient client)
   {
-    var clientInfo = await GetClientSessionInfo(client);
+    var clientInfo = await CreateClientSessionInfoFromClient(client);
     AddClient(clientInfo);
     await HandleClientMessagesAsync(clientInfo);
   }
 
-  private async Task<ClientSessionInfo> GetClientSessionInfo(TcpClient client)
+  private async Task<ClientSessionInfo> CreateClientSessionInfoFromClient(TcpClient client)
   {
     var stream = client.GetStream();
 
@@ -188,8 +189,9 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
     var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
     var clientInfo = message.Sender;
     var clientId = Guid.NewGuid().ToString();
+    var newClientInfo = clientInfo with { Id = clientId };
 
-    return new ClientSessionInfo(clientId, clientInfo, client);
+    return new ClientSessionInfo(newClientInfo, client);
   }
 
   private async Task HandleClientMessagesAsync(ClientSessionInfo client)
@@ -245,17 +247,16 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
   private Task TransferClientsInfoToClientAsync(ClientSessionInfo client)
   {
-    IEnumerable<Tuple<string, ClientInfo>> clientsInfo = [];
+    IEnumerable<ClientInfo> clientsInfo = [];
     lock (_clients)
     {
-      clientsInfo = _clients.Select(client =>
-        Tuple.Create(client.Id, client.Info));
+      clientsInfo = _clients.Select(client => client.Info);
     }
 
     var json = JsonSerializer.Serialize(clientsInfo);
     var contentBytes = Encoding.UTF8.GetBytes(json);
     var message = new Core.Models.Message(
-      new ClientInfo("Server"),
+      SERVER_INFO,
       contentBytes,
       MessageType.ActiveClientsInfo,
       Target.Individual,
