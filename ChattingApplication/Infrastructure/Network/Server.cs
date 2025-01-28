@@ -230,10 +230,11 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
   private Task TransferClientsInfoToClientAsync(ClientSessionInfo client)
   {
-    IEnumerable<ClientInfo> clientsInfo = [];
+    IEnumerable<Tuple<string, ClientInfo>> clientsInfo = [];
     lock (_clients)
     {
-      clientsInfo = _clients.Select(client => client.Info);
+      clientsInfo = _clients.Select(client =>
+        Tuple.Create(client.Id, client.Info));
     }
 
     var json = JsonSerializer.Serialize(clientsInfo);

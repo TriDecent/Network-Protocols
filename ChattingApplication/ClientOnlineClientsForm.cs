@@ -11,7 +11,7 @@ namespace ChattingApplication
     private readonly ListView _lvOnlineClients;
     private readonly System.Windows.Forms.Timer _timerUpdateClients;
 
-    public ClientOnlineClientsForm(IClient client)
+    public ClientOnlineClientsForm(ClientInfo senderInfo, IClient client)
     {
       InitializeComponent();
 
@@ -32,24 +32,24 @@ namespace ChattingApplication
 
       _timerUpdateClients.Start();
 
-      _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(client);
+      _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(senderInfo, client);
     }
     private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
     {
       if (e.Message.Type is not MessageType.ActiveClientsInfo) return;
 
-      var clientsInfo = JsonSerializer.Deserialize<IEnumerable<ClientInfo>>(e.Message.Content);
+      var clientsInfo = JsonSerializer.Deserialize<IEnumerable<Tuple<string, ClientInfo>>>(e.Message.Content);
       DisplayOnlineClients(clientsInfo!);
     }
 
-    private void DisplayOnlineClients(IEnumerable<ClientInfo> clientsInfo)
+    private void DisplayOnlineClients(IEnumerable<Tuple<string, ClientInfo>> clientsInfo)
     {
       _lvOnlineClients.Items.Clear();
       _lvOnlineClients.Items.Add(new ListViewItem("Server"));
 
       foreach (var clientInfo in clientsInfo)
       {
-        var item = new ListViewItem(clientInfo.Name)
+        var item = new ListViewItem(clientInfo.Item1, clientInfo.Item2.Name)
         {
           Tag = clientInfo
         };
@@ -57,10 +57,12 @@ namespace ChattingApplication
       }
     }
 
-    private void OnClientDoubleClick(IClient client)
+    private void OnClientDoubleClick(ClientInfo senderInfo, IClient client)
     {
-      // temp
-      new ClientDirectMessageForm(new ClientInfo("Server"), client).Show();
+      var selectedItem = _lvOnlineClients.SelectedItems[0];
+
+      var selectedRecipient = (Tuple<string, ClientInfo>)selectedItem.Tag!;
+      new ClientDirectMessageForm(senderInfo, selectedRecipient, client).Show();
     }
   }
 }
