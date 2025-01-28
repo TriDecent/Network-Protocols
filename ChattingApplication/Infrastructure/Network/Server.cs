@@ -186,8 +186,9 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
     var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
     var clientInfo = message.Sender;
+    var clientId = Guid.NewGuid().ToString();
 
-    return new ClientSessionInfo(clientInfo, client);
+    return new ClientSessionInfo(clientId, clientInfo, client);
   }
 
   private async Task HandleClientMessagesAsync(ClientSessionInfo client)
