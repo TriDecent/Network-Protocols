@@ -210,11 +210,25 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
         var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
 
-        if (message.Request is MessageRequest.GetClientsInfo &&
-          message.Target is Target.Server)
+        switch (message.Request, message.Target)
         {
-          _ = TransferClientsInfoToClientAsync(client);
-          continue;
+          case (MessageRequest.GetClientsInfo, Target.Server):
+            _ = TransferClientsInfoToClientAsync(client);
+            continue;
+
+          case (MessageRequest.GetCreationUserId, Target.Server):
+            _ = TransferClientIdToClientAsync(client);
+            continue;
+
+          case (_, Target.Individual) when message.Recipient is not null:
+            if (message.Recipient == SERVER_INFO)
+            {
+              RaiseReceivedUnicastMessage(message);
+              continue;
+            }
+
+            _ = ForwardMessageToClientAsync(client, message);
+            continue;
         }
 
         RaiseReceivedBroadcastMessage(message);
@@ -249,6 +263,23 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
     return SendUnicastMessageAsync(client, message);
   }
+
+  private Task TransferClientIdToClientAsync(ClientSessionInfo client)
+  {
+    var jsonId = JsonSerializer.Serialize(client.Info.Id);
+    var idBytes = Encoding.UTF8.GetBytes(jsonId);
+    var message = new Core.Models.Message(
+      SERVER_INFO,
+      idBytes,
+      MessageType.CreationClientId,
+      Target.Individual,
+      MessageRequest.None);
+
+    return SendUnicastMessageAsync(client, message);
+  }
+
+  private Task ForwardMessageToClientAsync(ClientSessionInfo recipient, Core.Models.Message message)
+    => SendUnicastMessageAsync(recipient, message);
 
   private void AddClient(ClientSessionInfo client)
   {
