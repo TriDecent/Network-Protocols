@@ -25,9 +25,9 @@ namespace ChattingApplication
       using var tcpClient2 = new TcpClient();
       using var tcpClient3 = new TcpClient();
 
-      var account1 = new ClientInfo("");
-      var account2 = new ClientInfo("");
-      var account3 = new ClientInfo("");
+      var account1 = new ClientInfo("", "");
+      var account2 = new ClientInfo("", "");
+      var account3 = new ClientInfo("", "");
 
       var client1 = new Client(tcpClient1, account1, serializer);  // not use using, let form handle life cycle
       var client2 = new Client(tcpClient2, account2, serializer);  // not use using, let form handle life cycle
