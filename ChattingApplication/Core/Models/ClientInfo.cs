@@ -1,3 +1,3 @@
 namespace ChattingApplication.Core.Models;
 
-public record ClientInfo(string Name);
+public record ClientInfo(string Id, string Name);
