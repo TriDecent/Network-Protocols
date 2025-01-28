@@ -10,6 +10,7 @@ namespace ChattingApplication;
 
 public partial class ServerForm : Form
 {
+  private static readonly ClientInfo SERVER_INFO = new("0", "Server");
   private readonly Button _startServerButton, _stopServerButton, _shutdownButton;
   private readonly Button _attachButton, _detachButton;
   private readonly Button _dmButton;
@@ -138,7 +139,7 @@ public partial class ServerForm : Form
 
   private static Core.Models.Message CreateMessage(byte[] content, MessageType type)
     => new(
-      new ClientInfo("Server"),
+      SERVER_INFO,
       content,
       type,
       Target.All,
