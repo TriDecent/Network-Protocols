@@ -1,4 +1,4 @@
-﻿using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
@@ -32,7 +32,8 @@ public class Client(
     {
       UpdateState(ClientState.Connecting);
       await _client.ConnectAsync(ipEndPoint);
-      await TransferClientInfoToServer();
+      await TransferCurrentClientInfoToServer();
+      await RequestClientIdFromServer();
       UpdateState(ClientState.Connected);
 
       _ = HandleReceivedMessageAsync().ContinueWith(cancelledTask =>
@@ -76,14 +77,6 @@ public class Client(
     var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
 
     await SendBytesAsync(messageBytes);
-  }
-
-  private async Task TransferClientInfoToServer()
-  {
-    var message = new Core.Models.Message(
-      ClientDetails, [], MessageType.Any, Target.Server, MessageRequest.None);
-
-    await SendMessageAsync(message);
   }
 
   private async Task SendBytesAsync(ReadOnlyMemory<byte> bytes)
@@ -135,6 +128,15 @@ public class Client(
           continue;
         }
 
+        if (message.Target is Target.Individual &&
+          message.Type is MessageType.CreationClientId)
+        {
+          ClientInfo = ClientInfo with
+          {
+            Id = JsonSerializer.Deserialize<string>(message.Content)!
+          };
+        }
+
         RaiseReceivedUnicastMessage(message);
       }
       catch (EndOfStreamException)
@@ -143,6 +145,22 @@ public class Client(
         break;
       }
     }
+  }
+
+  private async Task TransferCurrentClientInfoToServer()
+  {
+    var message = new Core.Models.Message(
+      ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.None);
+
+    await SendMessageAsync(message);
+  }
+
+  private async Task RequestClientIdFromServer()
+  {
+    var message = new Core.Models.Message(
+      ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.GetCreationUserId);
+
+    await SendMessageAsync(message);
   }
 
   private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
