@@ -42,6 +42,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
   public event EventHandler<int>? ClientsCountChangedEventHandler;
   public event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
+  public event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
   public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
   public event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
   public event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
@@ -298,6 +299,10 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
   private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
     => BroadcastMessageReceivedEventHandler?.Invoke(
+      this, new MessageReceivedEventArgs(message, message.Type));
+
+  private void RaiseReceivedUnicastMessage(Core.Models.Message message)
+    => UnicastMessageReceivedEventHandler?.Invoke(
       this, new MessageReceivedEventArgs(message, message.Type));
 
   private void RaiseChangedClientsCount()
