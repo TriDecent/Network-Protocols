@@ -2,6 +2,7 @@
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.Operations;
 
 namespace ChattingApplication;
 
@@ -9,7 +10,10 @@ public partial class ServerOnlineClientsForm : Form
 {
   private readonly ListView _lvOnlineClients;
 
-  public ServerOnlineClientsForm(IServer server, IServerEventEmitter eventEmitter)
+  public ServerOnlineClientsForm(
+    IServer server,
+    IServerOperations serverOperations,
+    IServerEventEmitter eventEmitter)
   {
     InitializeComponent();
     _lvOnlineClients = lvOnlineClients;
@@ -19,7 +23,7 @@ public partial class ServerOnlineClientsForm : Form
     _lvOnlineClients.MultiSelect = false;
     _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(server, eventEmitter);
+    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(serverOperations, eventEmitter);
 
     var clientsInfo = server.ClientsInfo;
     DisplayClientsInfo(clientsInfo);
@@ -75,7 +79,7 @@ public partial class ServerOnlineClientsForm : Form
     }
   }
 
-  private void OnClientDoubleClick(IServer server, IServerEventEmitter eventEmitter)
+  private void OnClientDoubleClick(IServerOperations server, IServerEventEmitter eventEmitter)
   {
     if (_lvOnlineClients.SelectedItems.Count == 0) return;
 

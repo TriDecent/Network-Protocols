@@ -56,7 +56,7 @@ public partial class ServerForm : Form
     {
       if (_dmForm is not null) return;
 
-      _dmForm = new ServerOnlineClientsForm(_server, eventEmitter);
+      _dmForm = new ServerOnlineClientsForm(_server, _server, eventEmitter);
       _dmForm.FormClosing += (s, e) => _dmForm = null;
       _dmForm.Show();
     };

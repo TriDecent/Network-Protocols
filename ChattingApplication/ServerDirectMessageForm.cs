@@ -1,9 +1,9 @@
 ﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
-using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.Operations;
 using System.Text;
 
 namespace ChattingApplication;
@@ -23,8 +23,8 @@ public partial class ServerDirectMessageForm : Form
   private readonly string _interactingClientId;
 
   public ServerDirectMessageForm(
-    IServer server, 
-    IServerEventEmitter eventEmitter, 
+    IServerOperations server,
+    IServerEventEmitter eventEmitter,
     ClientSessionInfo recipient)
   {
     InitializeComponent();
@@ -43,7 +43,7 @@ public partial class ServerDirectMessageForm : Form
     _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, server);
   }
 
-  private async Task OnSendMessageClickedAsync(ClientSessionInfo recipient, IServer server)
+  private async Task OnSendMessageClickedAsync(ClientSessionInfo recipient, IServerOperations server)
   {
     if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
@@ -67,12 +67,12 @@ public partial class ServerDirectMessageForm : Form
     _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
   }
 
-  private Task SendContent(ClientSessionInfo recipient, string content, IServer server)
+  private Task SendContent(ClientSessionInfo recipient, string content, IServerOperations server)
       => _isSendingImage ?
       SendImageAsync(recipient, content, server) :
       SendTextAsync(recipient, content, server);
 
-  private async Task SendImageAsync(ClientSessionInfo recipient, string filePath, IServer server)
+  private async Task SendImageAsync(ClientSessionInfo recipient, string filePath, IServerOperations server)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
@@ -83,7 +83,7 @@ public partial class ServerDirectMessageForm : Form
       _chatRenderer.DisplayImage("Server", image, true));
   }
 
-  private async Task SendTextAsync(ClientSessionInfo recipient, string text, IServer server)
+  private async Task SendTextAsync(ClientSessionInfo recipient, string text, IServerOperations server)
   {
     var message = CreateMessage(
       Encoding.UTF8.GetBytes(text),
@@ -104,7 +104,7 @@ public partial class ServerDirectMessageForm : Form
   private static async Task SendAndDisplayAsync(
     ClientSessionInfo recipient,
     Core.Models.Message message,
-    IServer server,
+    IServerOperations server,
     Action displayAction)
   {
     await server.SendUnicastMessageAsync(recipient, message);
