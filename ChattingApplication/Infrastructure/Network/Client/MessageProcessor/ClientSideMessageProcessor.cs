@@ -16,24 +16,6 @@ public class ClientSideMessageProcessor(
   private readonly IClientEventEmitter _eventEmitter = eventEmitter;
   private readonly Action<string> _updateClientId = updateClientId;
 
-  public void ProcessMessage(Core.Models.Message message)
-  {
-    if (message.Target is Target.All)
-    {
-      _eventEmitter.EmitBroadcastMessageReceived(message);
-      return;
-    }
-
-    if (message.Target is Target.Individual &&
-      message.Type is MessageType.CreationClientId)
-    {
-      var clientId = JsonSerializer.Deserialize<string>(message.Content)!;
-      _updateClientId(clientId);
-    }
-
-    _eventEmitter.EmitUnicastMessageReceived(message);
-  }
-
   public Task<Memory<byte>> PrepareOutgoingMessageAsync(Core.Models.Message message)
     => _serializer.SerializeMessageToBytesAsync(message);
 
@@ -58,5 +40,23 @@ public class ClientSideMessageProcessor(
         throw;
       }
     }
+  }
+
+  private void ProcessMessage(Core.Models.Message message)
+  {
+    if (message.Target is Target.All)
+    {
+      _eventEmitter.EmitBroadcastMessageReceived(message);
+      return;
+    }
+
+    if (message.Target is Target.Individual &&
+      message.Type is MessageType.CreationClientId)
+    {
+      var clientId = JsonSerializer.Deserialize<string>(message.Content)!;
+      _updateClientId(clientId);
+    }
+
+    _eventEmitter.EmitUnicastMessageReceived(message);
   }
 }
