@@ -2,25 +2,26 @@ using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
+using ChattingApplication.Infrastructure.Network.Server.Operations;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Server;
 
-public class Server(
-  TcpListener server,
-  IMessageSerializer serializer,
-  IServerEventEmitter eventEmitter) : IServer
+public class Server : IServer, IServerOperations
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
-  private readonly TcpListener _server = server;
-  private readonly IMessageSerializer _serializer = serializer;
-  private readonly IServerEventEmitter _eventEmitter = eventEmitter;
+  private readonly TcpListener _server;
+  private readonly IMessageSerializer _serializer;
+  private readonly IServerEventEmitter _eventEmitter;
+  private readonly IServerSideMessageProcessor _messageProcessor;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<ClientSessionInfo> _clients = [];
@@ -41,6 +42,21 @@ public class Server(
         return _clients.ToList().AsReadOnly();
       }
     }
+  }
+
+  public Server(
+    TcpListener server,
+    IMessageSerializer serializer,
+    IServerEventEmitter eventEmitter)
+  {
+    _server = server;
+    _serializer = serializer;
+    _eventEmitter = eventEmitter;
+
+    _messageProcessor = new ServerSideMessageProcessor(
+      serializer,
+      eventEmitter,
+      this);
   }
 
   public void StartListeningForConnections()
@@ -107,23 +123,68 @@ public class Server(
     }
   }
 
-  public async Task SendUnicastMessageAsync(ClientSessionInfo clientInfo, Core.Models.Message message)
+  public async Task BroadcastMessageToAllClientsAsync(Message message)
+  {
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    await BroadcastToClientsCoreAsync(messageBytes);
+  }
+
+  public async Task BroadcastMessageToClientsExceptAsync(Message message, ClientSessionInfo excludedClient)
+  {
+    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
+  }
+
+  public async Task SendUnicastMessageAsync(ClientSessionInfo clientInfo, Message message)
   {
     var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
     var clientStream = clientInfo.Client.GetStream();
     await clientStream.WriteAsync(messageBytes, _shutdownCTS.Token);
   }
 
-  public async Task BroadcastMessageToAllClientsAsync(Core.Models.Message message)
+  public Task SendClientsInfoToClientAsync(ClientSessionInfo client)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
-    await BroadcastToClientsCoreAsync(messageBytes);
+    IEnumerable<ClientInfo> clientsInfo = [];
+    lock (_clients)
+    {
+      clientsInfo = _clients.Select(client => client.Info);
+    }
+
+    var json = JsonSerializer.Serialize(clientsInfo);
+    var contentBytes = Encoding.UTF8.GetBytes(json);
+    var message = new Message(
+      SERVER_INFO,
+      contentBytes,
+      MessageType.ActiveClientsInfo,
+      Target.Individual,
+      MessageRequest.None);
+
+    return SendUnicastMessageAsync(client, message);
   }
 
-  private async Task BroadcastMessageToClientsExceptAsync(Core.Models.Message message, ClientSessionInfo excludedClient)
+  public Task SendCreationIdToSessionClientAsync(ClientSessionInfo client)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
-    await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
+    var jsonId = JsonSerializer.Serialize(client.Info.Id);
+    var idBytes = Encoding.UTF8.GetBytes(jsonId);
+    var message = new Message(
+      SERVER_INFO,
+      idBytes,
+      MessageType.CreationClientId,
+      Target.Individual,
+      MessageRequest.None);
+
+    return SendUnicastMessageAsync(client, message);
+  }
+
+  public Task ForwardMessageToClientAsync(ClientSessionInfo recipient, Message message)
+    => SendUnicastMessageAsync(recipient, message);
+
+  public ClientSessionInfo? FindRecipient(ClientInfo recipientInfo)
+  {
+    lock (_clients)
+    {
+      return _clients.FirstOrDefault(client => client.Info == recipientInfo);
+    }
   }
 
   private async Task BroadcastToClientsCoreAsync(ReadOnlyMemory<byte> bytes, ClientSessionInfo? excludedClient = null)
@@ -181,7 +242,7 @@ public class Server(
 
     await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
 
-    var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
+    var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
     var clientInfo = message.Sender;
     var clientId = Guid.NewGuid().ToString();
     var newClientInfo = clientInfo with { Id = clientId };
@@ -191,92 +252,16 @@ public class Server(
 
   private async Task HandleClientMessagesAsync(ClientSessionInfo client)
   {
-    var stream = client.Client.GetStream();
-
-    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-    while (!_shutdownCTS.Token.IsCancellationRequested)
+    try
     {
-      try
-      {
-        await stream.ReadExactlyAsync(buffer.AsMemory(), _shutdownCTS.Token);
-
-        var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
-        var contentBytes = new byte[contentLength];
-
-        await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
-
-        var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
-
-        switch (message.Request, message.Target)
-        {
-          case (MessageRequest.GetClientsInfo, Target.Server):
-            _ = TransferClientsInfoToClientAsync(client);
-            continue;
-
-          case (MessageRequest.GetCreationUserId, Target.Server):
-            _ = TransferClientIdToClientAsync(client);
-            continue;
-
-          case (_, Target.Individual) when message.Recipient is not null:
-            if (message.Recipient == SERVER_INFO)
-            {
-              _eventEmitter.EmitReceivedUnicastMessage(message);
-              continue;
-            }
-
-            var recipient = _clients.Where(client => client.Info == message.Recipient).FirstOrDefault();
-            _ = ForwardMessageToClientAsync(recipient!, message);
-            continue;
-        }
-
-        _eventEmitter.EmitReceivedBroadcastMessage(message);
-
-        await BroadcastMessageToClientsExceptAsync(message, client);
-      }
-      catch (EndOfStreamException)
-      {
-        RemoveClient(client);
-        break;
-      }
+      var stream = client.Client.GetStream();
+      await _messageProcessor.HandleMessageFromStreamAsync(stream, client, _shutdownCTS.Token);
+    }
+    catch (EndOfStreamException)
+    {
+      RemoveClient(client);
     }
   }
-
-  private Task TransferClientsInfoToClientAsync(ClientSessionInfo client)
-  {
-    IEnumerable<ClientInfo> clientsInfo = [];
-    lock (_clients)
-    {
-      clientsInfo = _clients.Select(client => client.Info);
-    }
-
-    var json = JsonSerializer.Serialize(clientsInfo);
-    var contentBytes = Encoding.UTF8.GetBytes(json);
-    var message = new Core.Models.Message(
-      SERVER_INFO,
-      contentBytes,
-      MessageType.ActiveClientsInfo,
-      Target.Individual,
-      MessageRequest.None);
-
-    return SendUnicastMessageAsync(client, message);
-  }
-
-  private Task TransferClientIdToClientAsync(ClientSessionInfo client)
-  {
-    var jsonId = JsonSerializer.Serialize(client.Info.Id);
-    var idBytes = Encoding.UTF8.GetBytes(jsonId);
-    var message = new Core.Models.Message(
-      SERVER_INFO,
-      idBytes,
-      MessageType.CreationClientId,
-      Target.Individual,
-      MessageRequest.None);
-
-    return SendUnicastMessageAsync(client, message);
-  }
-
-  private Task ForwardMessageToClientAsync(ClientSessionInfo recipient, Core.Models.Message message)
-    => SendUnicastMessageAsync(recipient, message);
 
   private void AddClient(ClientSessionInfo client)
   {
