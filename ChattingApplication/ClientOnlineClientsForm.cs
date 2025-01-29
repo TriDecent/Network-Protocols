@@ -2,6 +2,7 @@
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network;
 using System.Text.Json;
 
 namespace ChattingApplication;
@@ -12,7 +13,10 @@ public partial class ClientOnlineClientsForm : Form
   private readonly ListView _lvOnlineClients;
   private readonly System.Windows.Forms.Timer _timerUpdateClients;
 
-  public ClientOnlineClientsForm(ClientInfo senderInfo, IClient client)
+  public ClientOnlineClientsForm(
+    ClientInfo senderInfo,
+    IClient client,
+    IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
 
@@ -24,16 +28,21 @@ public partial class ClientOnlineClientsForm : Form
     _lvOnlineClients.MultiSelect = false;
     _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-    client.UnicastMessageReceivedEventHandler += OnUnicastMessageReceived;
+    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
 
     _timerUpdateClients.Tick += (s, e) =>
       _ = client.SendMessageAsync(
         new Core.Models.Message(
-          client.ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.GetClientsInfo));
+          client.ClientInfo,
+          [],
+          MessageType.Any,
+          Target.Server,
+          MessageRequest.GetClientsInfo));
 
     _timerUpdateClients.Start();
 
-    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(senderInfo, client);
+    _lvOnlineClients.DoubleClick += (s, e) 
+      => OnClientDoubleClick(senderInfo, client, eventEmitter);
   }
   private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
@@ -58,7 +67,10 @@ public partial class ClientOnlineClientsForm : Form
     }
   }
 
-  private void OnClientDoubleClick(ClientInfo senderInfo, IClient client)
+  private void OnClientDoubleClick(
+    ClientInfo senderInfo,
+    IClient client,
+    IClientEventEmitter eventEmitter)
   {
     if (_lvOnlineClients.SelectedItems.Count == 0) return;
 
@@ -66,11 +78,19 @@ public partial class ClientOnlineClientsForm : Form
 
     if (_lvOnlineClients.Items.IndexOf(selectedItem) == 0)
     {
-      new ClientDirectMessageForm(senderInfo, SERVER_INFO, client).Show();
+      new ClientDirectMessageForm(
+        senderInfo,
+        SERVER_INFO,
+        client,
+        eventEmitter).Show();
       return;
     }
 
     var selectedRecipient = (ClientInfo)selectedItem.Tag!;
-    new ClientDirectMessageForm(senderInfo, selectedRecipient, client).Show();
+    new ClientDirectMessageForm(
+      senderInfo,
+      selectedRecipient,
+      client,
+      eventEmitter).Show();
   }
 }

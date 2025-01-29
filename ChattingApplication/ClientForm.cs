@@ -1,6 +1,7 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
+using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Infrastructure.Network;
 using System.Net;
 using System.Text;
@@ -20,11 +21,12 @@ public partial class ClientForm : Form
   private readonly TextBox _clientNameTextBox;
   private readonly Label _stateLabel;
   private readonly Client _client; // only for better performance
+  private readonly IClientEventEmitter _eventEmitter;
   private readonly ChatMessageRenderer _chatRenderer;
 
   private bool _isSendingImage = false;
 
-  public ClientForm(Client client)
+  public ClientForm(Client client, IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
 
@@ -43,9 +45,10 @@ public partial class ClientForm : Form
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
     _client = client;
+    _eventEmitter = eventEmitter;
 
-    _client.StateChangedEventHandler += OnStatusChanged;
-    _client.BroadcastMessageReceivedEventHandler += OnBroadcastMessageReceived;
+    _eventEmitter.StateChanged += OnStatusChanged;
+    _eventEmitter.BroadcastMessageReceived += OnBroadcastMessageReceived;
 
     FormClosing += (s, e) => _client?.Dispose();
 
@@ -64,7 +67,7 @@ public partial class ClientForm : Form
       EnableConnectButtonBasedOnServerInput();
 
     _directMessageButton.Click += (s, e)
-      => new ClientOnlineClientsForm(_client.ClientInfo, _client).Show();
+      => new ClientOnlineClientsForm(_client.ClientInfo, _client, eventEmitter).Show();
   }
 
   private void EnableConnectButtonBasedOnServerInput()

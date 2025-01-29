@@ -21,6 +21,10 @@ namespace ChattingApplication
 
       var serializer = new MessageSerializer();
 
+      var eventEmitter1 = new ClientEventEmitter();
+      var eventEmitter2 = new ClientEventEmitter();
+      var eventEmitter3 = new ClientEventEmitter();
+
       using var tcpClient1 = new TcpClient();
       using var tcpClient2 = new TcpClient();
       using var tcpClient3 = new TcpClient();
@@ -29,13 +33,13 @@ namespace ChattingApplication
       var account2 = new ClientInfo("", "");
       var account3 = new ClientInfo("", "");
 
-      var client1 = new Client(tcpClient1, account1, serializer);  // not use using, let form handle life cycle
-      var client2 = new Client(tcpClient2, account2, serializer);  // not use using, let form handle life cycle
-      var client3 = new Client(tcpClient3, account3, serializer);  // not use using, let form handle life cycle
+      var client1 = new Client(tcpClient1, account1, serializer, eventEmitter1);  // not use using, let form handle life cycle
+      var client2 = new Client(tcpClient2, account2, serializer, eventEmitter2);  // not use using, let form handle life cycle
+      var client3 = new Client(tcpClient3, account3, serializer, eventEmitter3);  // not use using, let form handle life cycle
 
-      var clientForm1 = new ClientForm(client1);
-      var clientForm2 = new ClientForm(client2);
-      var clientForm3 = new ClientForm(client3);
+      var clientForm1 = new ClientForm(client1, eventEmitter1);
+      var clientForm2 = new ClientForm(client2, eventEmitter2);
+      var clientForm3 = new ClientForm(client3, eventEmitter3);
 
       var ipEndPoint = new IPEndPoint(IPAddress.Parse("192.168.2.215"), 1211);
       using var tcpListener = new TcpListener(ipEndPoint);

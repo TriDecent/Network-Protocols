@@ -3,6 +3,7 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network;
 using System.Text;
 
 namespace ChattingApplication;
@@ -21,7 +22,7 @@ public partial class ClientDirectMessageForm : Form
   private readonly string _interactingId;
 
   public ClientDirectMessageForm(
-    ClientInfo sender, ClientInfo recipient, IClient client)
+    ClientInfo sender, ClientInfo recipient, IClient client, IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
 
@@ -44,7 +45,7 @@ public partial class ClientDirectMessageForm : Form
     _attachItemButton.Click += (s, e) => OnAttachButtonClicked();
     _detachItemButton.Click += (s, e) => OnDetachButtonClicked();
 
-    client.UnicastMessageReceivedEventHandler += OnUnicastMessageReceived;
+    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
   }
 
   private async Task OnSendMessageClickedAsync(ClientInfo sender, ClientInfo recipient, IClient client)
