@@ -16,11 +16,4 @@ public interface IServer : IDisposable
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   IReadOnlyList<ClientSessionInfo> ClientsInfo { get; }
-  int ConnectedClientsCount { get; }
-  event EventHandler<int>? ClientsCountChangedEventHandler;
-  event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
-  event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
-  event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
 }
