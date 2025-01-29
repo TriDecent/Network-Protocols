@@ -1,5 +1,4 @@
 ﻿using ChattingApplication.Common.Enums;
-using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
@@ -14,17 +13,16 @@ namespace ChattingApplication.Infrastructure.Network;
 public class Client(
   TcpClient tcpClient,
   ClientInfo clientDetails,
-  IMessageSerializer serializer) : IClient
+  IMessageSerializer serializer,
+  IClientEventEmitter eventEmitter) : IClient
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private TcpClient _client = tcpClient;
   private readonly IMessageSerializer _serializer = serializer;
+  private readonly IClientEventEmitter _eventEmitter = eventEmitter;
   public ClientInfo ClientInfo { get; private set; } = clientDetails;
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
-  public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -98,11 +96,8 @@ public class Client(
   private void UpdateState(ClientState state)
   {
     State = state;
-    RaiseChangedState();
+    _eventEmitter.EmitStateChanged(state);
   }
-
-  private void RaiseChangedState()
-    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(null, State));
 
   private async Task HandleReceivedMessageAsync()
   {
@@ -124,7 +119,7 @@ public class Client(
 
         if (message.Target is Target.All)
         {
-          RaiseReceivedBroadcastMessage(message);
+          _eventEmitter.EmitBroadcastMessageReceived(message);
           continue;
         }
 
@@ -137,7 +132,7 @@ public class Client(
           };
         }
 
-        RaiseReceivedUnicastMessage(message);
+        _eventEmitter.EmitUnicastMessageReceived(message);
       }
       catch (EndOfStreamException)
       {
@@ -162,14 +157,6 @@ public class Client(
 
     await SendMessageAsync(message);
   }
-
-  private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
-    => BroadcastMessageReceivedEventHandler?.Invoke(
-      this, new MessageReceivedEventArgs(message, message.Type));
-
-  private void RaiseReceivedUnicastMessage(Core.Models.Message message)
-    => UnicastMessageReceivedEventHandler?.Invoke(
-      this, new MessageReceivedEventArgs(message, message.Type));
 
   private static string GetSocketErrorMessage(SocketError errorCode) => errorCode switch
   {
