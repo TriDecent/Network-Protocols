@@ -1,6 +1,7 @@
 ﻿using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network.Server;
 
 namespace ChattingApplication;
 
@@ -8,7 +9,7 @@ public partial class ServerOnlineClientsForm : Form
 {
   private readonly ListView _lvOnlineClients;
 
-  public ServerOnlineClientsForm(IServer server)
+  public ServerOnlineClientsForm(IServer server, IServerEventEmitter eventEmitter)
   {
     InitializeComponent();
     _lvOnlineClients = lvOnlineClients;
@@ -18,13 +19,13 @@ public partial class ServerOnlineClientsForm : Form
     _lvOnlineClients.MultiSelect = false;
     _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(server);
+    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(server, eventEmitter);
 
     var clientsInfo = server.ClientsInfo;
     DisplayClientsInfo(clientsInfo);
 
-    server.ClientConnectedEventHandler += OnConnectedClient;
-    server.ClientDisconnectedEventHandler += OnDisconnectedClient;
+    eventEmitter.ClientConnected += OnConnectedClient;
+    eventEmitter.ClientDisconnected += OnDisconnectedClient;
   }
 
   private void DisplayClientsInfo(IEnumerable<ClientSessionInfo> clientsInfo)
@@ -74,13 +75,13 @@ public partial class ServerOnlineClientsForm : Form
     }
   }
 
-  private void OnClientDoubleClick(IServer server)
+  private void OnClientDoubleClick(IServer server, IServerEventEmitter eventEmitter)
   {
     if (_lvOnlineClients.SelectedItems.Count == 0) return;
 
     var selectedItem = _lvOnlineClients.SelectedItems[0];
     var clientInfo = (ClientSessionInfo)selectedItem.Tag!;
 
-    new ServerDirectMessageForm(server, clientInfo).Show();
+    new ServerDirectMessageForm(server, eventEmitter, clientInfo).Show();
   }
 }

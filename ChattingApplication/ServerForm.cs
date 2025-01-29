@@ -21,12 +21,13 @@ public partial class ServerForm : Form
   private readonly ChatMessageRenderer _chatRenderer;
 
   private readonly Server _server; // only for better performance
+  private readonly IServerEventEmitter _eventEmitter;
 
   private bool _isSendingImage;
 
   private static ServerOnlineClientsForm? _dmForm;
 
-  public ServerForm(Server server)
+  public ServerForm(Server server, IServerEventEmitter eventEmitter)
   {
     InitializeComponent();
 
@@ -44,17 +45,18 @@ public partial class ServerForm : Form
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
     _server = server;
+    _eventEmitter = eventEmitter;
 
-    _server.BroadcastMessageReceivedEventHandler += OnMessageReceived;
-    _server.StateChangedEventHandler += OnStateChanged;
-    _server.ClientsCountChangedEventHandler += (s, connectedClientsCount)
+    _eventEmitter.BroadcastMessageReceived += OnMessageReceived;
+    _eventEmitter.StateChanged += OnStateChanged;
+    _eventEmitter.ClientsCountChanged += (s, connectedClientsCount)
       => _connectedClientsLabel.Text = connectedClientsCount.ToString();
 
     _dmButton.Click += (s, e) =>
     {
       if (_dmForm is not null) return;
 
-      _dmForm = new ServerOnlineClientsForm(_server);
+      _dmForm = new ServerOnlineClientsForm(_server, eventEmitter);
       _dmForm.FormClosing += (s, e) => _dmForm = null;
       _dmForm.Show();
     };

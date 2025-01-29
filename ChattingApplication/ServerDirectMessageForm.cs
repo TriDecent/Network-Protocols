@@ -3,6 +3,7 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
+using ChattingApplication.Infrastructure.Network.Server;
 using System.Text;
 
 namespace ChattingApplication;
@@ -21,7 +22,10 @@ public partial class ServerDirectMessageForm : Form
 
   private readonly string _interactingClientId;
 
-  public ServerDirectMessageForm(IServer server, ClientSessionInfo recipient)
+  public ServerDirectMessageForm(
+    IServer server, 
+    IServerEventEmitter eventEmitter, 
+    ClientSessionInfo recipient)
   {
     InitializeComponent();
 
@@ -35,7 +39,7 @@ public partial class ServerDirectMessageForm : Form
     _interactingClientId = recipient.Info.Id;
 
     _clientNameLabel.Text = recipient.Info.Name;
-    server.UnicastMessageReceivedEventHandler += OnUnicastMessageReceived;
+    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
     _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, server);
   }
 
