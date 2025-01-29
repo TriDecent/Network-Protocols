@@ -1,7 +1,7 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 
-namespace ChattingApplication.Infrastructure.Network;
+namespace ChattingApplication.Infrastructure.Network.Client;
 
 public interface IClientEventEmitter
 {

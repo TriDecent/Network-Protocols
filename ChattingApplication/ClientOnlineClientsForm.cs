@@ -2,7 +2,7 @@
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network;
+using ChattingApplication.Infrastructure.Network.Client;
 using System.Text.Json;
 
 namespace ChattingApplication;
@@ -41,7 +41,7 @@ public partial class ClientOnlineClientsForm : Form
 
     _timerUpdateClients.Start();
 
-    _lvOnlineClients.DoubleClick += (s, e) 
+    _lvOnlineClients.DoubleClick += (s, e)
       => OnClientDoubleClick(senderInfo, client, eventEmitter);
   }
   private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)

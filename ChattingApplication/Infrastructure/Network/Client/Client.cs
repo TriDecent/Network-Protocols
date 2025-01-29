@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using static ChattingApplication.Core.Interfaces.IClient;
 
-namespace ChattingApplication.Infrastructure.Network;
+namespace ChattingApplication.Infrastructure.Network.Client;
 
 public class Client(
   TcpClient tcpClient,

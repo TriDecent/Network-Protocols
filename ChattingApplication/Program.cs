@@ -1,6 +1,7 @@
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
-using ChattingApplication.Infrastructure.Network;
+using ChattingApplication.Infrastructure.Network.Client;
+using ChattingApplication.Infrastructure.Network.Server;
 using System.Net;
 using System.Net.Sockets;
 

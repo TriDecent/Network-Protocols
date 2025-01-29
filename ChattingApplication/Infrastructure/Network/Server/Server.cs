@@ -10,7 +10,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-namespace ChattingApplication.Infrastructure.Network;
+namespace ChattingApplication.Infrastructure.Network.Server;
 
 public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 {
