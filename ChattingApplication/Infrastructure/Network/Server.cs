@@ -229,7 +229,8 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
               continue;
             }
 
-            _ = ForwardMessageToClientAsync(client, message);
+            var recipient = _clients.Where(client => client.Info == message.Recipient).FirstOrDefault();
+            _ = ForwardMessageToClientAsync(recipient!, message);
             continue;
         }
 

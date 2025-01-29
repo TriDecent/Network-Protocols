@@ -51,6 +51,7 @@
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(413, 333);
       Controls.Add(lvOnlineClients);
+      FormBorderStyle = FormBorderStyle.FixedDialog;
       Name = "ClientOnlineClientsForm";
       Text = "Online Users";
       ResumeLayout(false);

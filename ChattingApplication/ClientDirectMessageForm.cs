@@ -9,7 +9,7 @@ namespace ChattingApplication;
 
 public partial class ClientDirectMessageForm : Form
 {
-  private readonly Label _clientNameLabel;
+  private readonly Label _recipientNameLabel, _senderNameLabel;
 
   private readonly Button _attachItemButton, _detachItemButton, _sendButton;
   private readonly TextBox _messageTextBox;
@@ -18,12 +18,15 @@ public partial class ClientDirectMessageForm : Form
 
   private bool _isSendingImage = false;
 
+  private readonly string _interactingId;
+
   public ClientDirectMessageForm(
     ClientInfo sender, ClientInfo recipient, IClient client)
   {
     InitializeComponent();
 
-    _clientNameLabel = lblClientName;
+    _recipientNameLabel = lblRecipientName;
+    _senderNameLabel = lblSenderName;
     _sendButton = btnSend;
     _attachItemButton = btnAttach;
     _detachItemButton = btnDetach;
@@ -31,11 +34,15 @@ public partial class ClientDirectMessageForm : Form
     _chatDisplayArea = rtbDialogArea;
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
-    _clientNameLabel.Text = recipient.Name;
+    _recipientNameLabel.Text = recipient.Name;
+    _senderNameLabel.Text = sender.Name;
+
+    _interactingId = recipient.Id;
+
     _sendButton.Click += async (s, e) =>
       await OnSendMessageClickedAsync(sender, recipient, client);
-    _attachItemButton.Click += (s,e) => OnAttachButtonClicked();
-    _detachItemButton.Click += (s,e) => OnDetachButtonClicked();
+    _attachItemButton.Click += (s, e) => OnAttachButtonClicked();
+    _detachItemButton.Click += (s, e) => OnDetachButtonClicked();
 
     client.UnicastMessageReceivedEventHandler += OnUnicastMessageReceived;
   }
@@ -51,6 +58,7 @@ public partial class ClientDirectMessageForm : Form
   private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
     if (e.Message.Type is MessageType.ActiveClientsInfo) return;
+    if (e.Message.Sender.Id != _interactingId) return;
 
     var messageOwner = e.Message.Sender.Name;
 

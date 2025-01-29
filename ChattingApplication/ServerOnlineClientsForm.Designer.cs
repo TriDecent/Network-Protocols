@@ -31,21 +31,22 @@
       lvOnlineClients = new ListView();
       SuspendLayout();
       // 
-      // lvOnlineUsers
+      // lvOnlineClients
       // 
       lvOnlineClients.Location = new Point(12, 12);
-      lvOnlineClients.Name = "lvOnlineUsers";
+      lvOnlineClients.Name = "lvOnlineClients";
       lvOnlineClients.Size = new Size(389, 308);
       lvOnlineClients.TabIndex = 0;
       lvOnlineClients.UseCompatibleStateImageBehavior = false;
       // 
-      // ServerOnlineUsersForm
+      // ServerOnlineClientsForm
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(413, 332);
       Controls.Add(lvOnlineClients);
-      Name = "ServerOnlineUsersForm";
+      FormBorderStyle = FormBorderStyle.FixedDialog;
+      Name = "ServerOnlineClientsForm";
       Text = "Online Users";
       ResumeLayout(false);
     }

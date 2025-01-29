@@ -49,7 +49,7 @@ namespace ChattingApplication
         return;
       }
 
-      var item = new ListViewItem(e.ClientSessionInfo.Info.Name)
+      var item = new ListViewItem($"{e.ClientSessionInfo.Info.Name} {e.ClientSessionInfo.Info.Id}")
       {
         Tag = e.ClientSessionInfo
       };

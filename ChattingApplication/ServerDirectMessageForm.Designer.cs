@@ -110,7 +110,7 @@
       lblClientName.TabIndex = 33;
       lblClientName.Text = "Trí Decent";
       // 
-      // DirectMessageForm
+      // ServerDirectMessageForm
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
@@ -122,7 +122,8 @@
       Controls.Add(btnSend);
       Controls.Add(lblDM);
       Controls.Add(txtMessage);
-      Name = "DirectMessageForm";
+      FormBorderStyle = FormBorderStyle.Fixed3D;
+      Name = "ServerDirectMessageForm";
       Text = "DMs";
       ResumeLayout(false);
       PerformLayout();
