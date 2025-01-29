@@ -2,27 +2,40 @@
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
-using System.Buffers.Binary;
+using ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 using System.Net;
 using System.Net.Sockets;
-using System.Text.Json;
 using static ChattingApplication.Core.Interfaces.IClient;
 
 namespace ChattingApplication.Infrastructure.Network.Client;
 
-public class Client(
-  TcpClient tcpClient,
-  ClientInfo clientDetails,
-  IMessageSerializer serializer,
-  IClientEventEmitter eventEmitter) : IClient
+public class Client : IClient
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
-  private TcpClient _client = tcpClient;
-  private readonly IMessageSerializer _serializer = serializer;
-  private readonly IClientEventEmitter _eventEmitter = eventEmitter;
-  public ClientInfo ClientInfo { get; private set; } = clientDetails;
+  private ClientInfo _clientInfo;
+  private TcpClient _client;
+  private readonly IMessageSerializer _serializer;
+  private readonly IClientEventEmitter _eventEmitter;
+  private readonly IClientSideMessageProcessor _messageProcessor;
+  public ClientInfo ClientInfo { get => _clientInfo; }
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
+
+  public Client(
+    TcpClient tcpClient,
+    ClientInfo clientInfo,
+    IMessageSerializer serializer,
+    IClientEventEmitter eventEmitter)
+  {
+    _clientInfo = clientInfo;
+    _client = tcpClient;
+    _serializer = serializer;
+    _eventEmitter = eventEmitter;
+    _messageProcessor = new ClientSideMessageProcessor(
+      serializer,
+      eventEmitter,
+      id => _clientInfo = _clientInfo with { Id = id });
+  }
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
@@ -68,12 +81,11 @@ public class Client(
   }
 
   public void UpdateName(string newName)
-    => ClientInfo = ClientInfo with { Name = newName };
+    => _clientInfo = _clientInfo with { Name = newName };
 
   public async Task SendMessageAsync(Core.Models.Message message)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
-
+    var messageBytes = await _messageProcessor.PrepareOutgoingMessageAsync(message);
     await SendBytesAsync(messageBytes);
   }
 
@@ -101,44 +113,14 @@ public class Client(
 
   private async Task HandleReceivedMessageAsync()
   {
-    var stream = _client.GetStream();
-
-    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-    while (!_cts.Token.IsCancellationRequested)
+    try
     {
-      try
-      {
-        await stream.ReadExactlyAsync(buffer.AsMemory(), _cts.Token);
-
-        var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
-        var contentBytes = new byte[contentLength];
-
-        await stream.ReadExactlyAsync(contentBytes.AsMemory(), _cts.Token);
-
-        var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
-
-        if (message.Target is Target.All)
-        {
-          _eventEmitter.EmitBroadcastMessageReceived(message);
-          continue;
-        }
-
-        if (message.Target is Target.Individual &&
-          message.Type is MessageType.CreationClientId)
-        {
-          ClientInfo = ClientInfo with
-          {
-            Id = JsonSerializer.Deserialize<string>(message.Content)!
-          };
-        }
-
-        _eventEmitter.EmitUnicastMessageReceived(message);
-      }
-      catch (EndOfStreamException)
-      {
-        DisconnectFromServer();
-        break;
-      }
+      var stream = _client.GetStream();
+      await _messageProcessor.HandleMessageFromStreamAsync(stream, _cts.Token);
+    }
+    catch (EndOfStreamException)
+    {
+      DisconnectFromServer();
     }
   }
 
