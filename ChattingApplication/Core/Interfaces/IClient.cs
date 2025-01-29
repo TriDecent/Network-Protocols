@@ -13,9 +13,6 @@ public interface IClient : IDisposable
   void UpdateName(string newName);
   ClientInfo ClientInfo { get; }
   ClientState State { get; }
-  event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
-  event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
 
   public class ConnectionResult
   {
