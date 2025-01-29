@@ -1,7 +1,8 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
+using Message = ChattingApplication.Core.Models.Message;
 
-namespace ChattingApplication.Infrastructure.Network.Client;
+namespace ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 
 public interface IClientEventEmitter
 {
@@ -10,6 +11,6 @@ public interface IClientEventEmitter
   event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceived;
 
   void EmitStateChanged(ClientState state);
-  void EmitBroadcastMessageReceived(Core.Models.Message message);
-  void EmitUnicastMessageReceived(Core.Models.Message message);
+  void EmitBroadcastMessageReceived(Message message);
+  void EmitUnicastMessageReceived(Message message);
 }

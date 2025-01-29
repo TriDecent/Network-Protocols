@@ -1,5 +1,4 @@
 using ChattingApplication.Common.Enums;
-using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Models;
 using System.Net;
 

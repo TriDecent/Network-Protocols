@@ -3,7 +3,9 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using System.Text;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
 
@@ -138,7 +140,7 @@ public partial class ServerForm : Form
       _chatRenderer.DisplayMessage("Server", text, true));
   }
 
-  private static Core.Models.Message CreateMessage(byte[] content, MessageType type)
+  private static Message CreateMessage(byte[] content, MessageType type)
     => new(
       SERVER_INFO,
       content,
@@ -146,7 +148,7 @@ public partial class ServerForm : Form
       Target.All,
       MessageRequest.None);
 
-  private async Task SendAndDisplay(Core.Models.Message message, Action displayAction)
+  private async Task SendAndDisplay(Message message, Action displayAction)
   {
     await _server.BroadcastMessageToAllClientsAsync(message);
     displayAction();

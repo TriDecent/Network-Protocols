@@ -1,8 +1,9 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Models;
+using Message = ChattingApplication.Core.Models.Message;
 
-namespace ChattingApplication.Infrastructure.Network.Server;
+namespace ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 
 public class ServerEventEmitter : IServerEventEmitter
 {
@@ -16,10 +17,10 @@ public class ServerEventEmitter : IServerEventEmitter
   public void EmitChangedState(ServerState changedState)
     => StateChanged?.Invoke(this, new StateChangedEventArgs(changedState, null));
 
-  public void EmitReceivedBroadcastMessage(Core.Models.Message message)
+  public void EmitReceivedBroadcastMessage(Message message)
     => BroadcastMessageReceived?.Invoke(this, new MessageReceivedEventArgs(message));
 
-  public void EmitReceivedUnicastMessage(Core.Models.Message message)
+  public void EmitReceivedUnicastMessage(Message message)
     => UnicastMessageReceived?.Invoke(this, new MessageReceivedEventArgs(message));
 
   public void EmitChangedClientsCount(int clientsCount)

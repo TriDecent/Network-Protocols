@@ -2,8 +2,9 @@
 using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network.Client;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Text.Json;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
 
@@ -32,7 +33,7 @@ public partial class ClientOnlineClientsForm : Form
 
     _timerUpdateClients.Tick += (s, e) =>
       _ = client.SendMessageAsync(
-        new Core.Models.Message(
+        new Message(
           client.ClientInfo,
           [],
           MessageType.Any,

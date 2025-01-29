@@ -1,6 +1,7 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
 using System.Buffers.Binary;
 using System.Net.Sockets;

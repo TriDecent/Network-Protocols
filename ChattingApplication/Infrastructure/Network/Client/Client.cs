@@ -2,22 +2,21 @@
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 using System.Net;
 using System.Net.Sockets;
 using static ChattingApplication.Core.Interfaces.IClient;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Client;
 
 public class Client : IClient
 {
-  private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
-  private ClientInfo _clientInfo;
   private TcpClient _client;
-  private readonly IMessageSerializer _serializer;
   private readonly IClientEventEmitter _eventEmitter;
   private readonly IClientSideMessageProcessor _messageProcessor;
-  public ClientInfo ClientInfo { get => _clientInfo; }
+  public ClientInfo ClientInfo { get; private set; }
   private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
 
@@ -27,14 +26,13 @@ public class Client : IClient
     IMessageSerializer serializer,
     IClientEventEmitter eventEmitter)
   {
-    _clientInfo = clientInfo;
+    ClientInfo = clientInfo;
     _client = tcpClient;
-    _serializer = serializer;
     _eventEmitter = eventEmitter;
     _messageProcessor = new ClientSideMessageProcessor(
       serializer,
       eventEmitter,
-      id => _clientInfo = _clientInfo with { Id = id });
+      id => ClientInfo = ClientInfo with { Id = id });
   }
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
@@ -81,9 +79,9 @@ public class Client : IClient
   }
 
   public void UpdateName(string newName)
-    => _clientInfo = _clientInfo with { Name = newName };
+    => ClientInfo = ClientInfo with { Name = newName };
 
-  public async Task SendMessageAsync(Core.Models.Message message)
+  public async Task SendMessageAsync(Message message)
   {
     var messageBytes = await _messageProcessor.PrepareOutgoingMessageAsync(message);
     await SendBytesAsync(messageBytes);
@@ -126,7 +124,7 @@ public class Client : IClient
 
   private async Task TransferCurrentClientInfoToServer()
   {
-    var message = new Core.Models.Message(
+    var message = new Message(
       ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.None);
 
     await SendMessageAsync(message);
@@ -134,7 +132,7 @@ public class Client : IClient
 
   private async Task RequestClientIdFromServer()
   {
-    var message = new Core.Models.Message(
+    var message = new Message(
       ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.GetCreationUserId);
 
     await SendMessageAsync(message);

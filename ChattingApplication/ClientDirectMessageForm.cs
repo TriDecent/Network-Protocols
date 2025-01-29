@@ -3,8 +3,9 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network.Client;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Text;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
 
@@ -103,7 +104,7 @@ public partial class ClientDirectMessageForm : Form
       _chatRenderer.DisplayMessage(sender.Name, text, true));
   }
 
-  private static Core.Models.Message CreateMessage(
+  private static Message CreateMessage(
     ClientInfo sender, byte[] content, MessageType type, ClientInfo recipient)
       => new(
         sender,
@@ -114,7 +115,7 @@ public partial class ClientDirectMessageForm : Form
         recipient);
 
   private static async Task SendAndDisplayAsync(
-    Core.Models.Message message,
+    Message message,
     IClient client,
     Action displayAction)
   {

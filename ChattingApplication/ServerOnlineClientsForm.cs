@@ -1,7 +1,7 @@
 ﻿using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
 
 namespace ChattingApplication;

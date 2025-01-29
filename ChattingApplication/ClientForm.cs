@@ -1,10 +1,12 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
-using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Infrastructure.Network.Client;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Net;
 using System.Text;
+
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
 
@@ -169,7 +171,7 @@ public partial class ClientForm : Form
         _chatRenderer.DisplayMessage(_client.ClientInfo.Name, text, true));
   }
 
-  private Core.Models.Message CreateMessage(byte[] content, MessageType type)
+  private Message CreateMessage(byte[] content, MessageType type)
     => new(
       _client.ClientInfo,
       content,
@@ -177,7 +179,7 @@ public partial class ClientForm : Form
       Target.All,
       MessageRequest.None);
 
-  private async Task SendAndDisplayAsync(Core.Models.Message message, Action displayAction)
+  private async Task SendAndDisplayAsync(Message message, Action displayAction)
   {
     await _client.SendMessageAsync(message);
     displayAction();

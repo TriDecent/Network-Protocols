@@ -9,7 +9,7 @@ public interface IServer : IDisposable
   IPEndPoint ServerEndPoint { get; }
   ServerState State { get; }
   IReadOnlyList<ClientSessionInfo> ClientsInfo { get; }
-  
+
   void StartListeningForConnections();
   void StopListeningForConnections();
   void ShutdownAllConnections();

@@ -1,6 +1,8 @@
+using Message = ChattingApplication.Core.Models.Message;
+
 namespace ChattingApplication.Common.Events;
 
-public class MessageReceivedEventArgs(Core.Models.Message message) : EventArgs
+public class MessageReceivedEventArgs(Message message) : EventArgs
 {
-  public Core.Models.Message Message { get; } = message;
+  public Message Message { get; } = message;
 }

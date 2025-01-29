@@ -2,9 +2,10 @@
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
 using System.Text;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
 
@@ -93,7 +94,7 @@ public partial class ServerDirectMessageForm : Form
       _chatRenderer.DisplayMessage("Server", text, true));
   }
 
-  private static Core.Models.Message CreateMessage(byte[] content, MessageType type)
+  private static Message CreateMessage(byte[] content, MessageType type)
     => new(
       SERVER_INFO,
       content,
@@ -103,7 +104,7 @@ public partial class ServerDirectMessageForm : Form
 
   private static async Task SendAndDisplayAsync(
     ClientSessionInfo recipient,
-    Core.Models.Message message,
+    Message message,
     IServerOperations server,
     Action displayAction)
   {

@@ -1,8 +1,10 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Text.Json;
+using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 
@@ -16,7 +18,7 @@ public class ClientSideMessageProcessor(
   private readonly IClientEventEmitter _eventEmitter = eventEmitter;
   private readonly Action<string> _updateClientId = updateClientId;
 
-  public Task<Memory<byte>> PrepareOutgoingMessageAsync(Core.Models.Message message)
+  public Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
     => _serializer.SerializeMessageToBytesAsync(message);
 
   public async Task HandleMessageFromStreamAsync(NetworkStream stream, CancellationToken token)
@@ -31,7 +33,7 @@ public class ClientSideMessageProcessor(
         var contentBytes = new byte[contentLength];
 
         await stream.ReadExactlyAsync(contentBytes.AsMemory(), token);
-        var message = JsonSerializer.Deserialize<Core.Models.Message>(contentBytes)!;
+        var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
 
         ProcessMessage(message);
       }
@@ -42,7 +44,7 @@ public class ClientSideMessageProcessor(
     }
   }
 
-  private void ProcessMessage(Core.Models.Message message)
+  private void ProcessMessage(Message message)
   {
     if (message.Target is Target.All)
     {
