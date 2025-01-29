@@ -1,5 +1,4 @@
 using ChattingApplication.Common.Enums;
-using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
@@ -12,12 +11,16 @@ using System.Text.Json;
 
 namespace ChattingApplication.Infrastructure.Network.Server;
 
-public class Server(TcpListener server, IMessageSerializer serializer) : IServer
+public class Server(
+  TcpListener server,
+  IMessageSerializer serializer,
+  IServerEventEmitter eventEmitter) : IServer
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
   private readonly TcpListener _server = server;
   private readonly IMessageSerializer _serializer = serializer;
+  private readonly IServerEventEmitter _eventEmitter = eventEmitter;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<ClientSessionInfo> _clients = [];
@@ -39,14 +42,6 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
       }
     }
   }
-  public int ConnectedClientsCount { get => _clients.Count; }
-
-  public event EventHandler<int>? ClientsCountChangedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? BroadcastMessageReceivedEventHandler;
-  public event EventHandler<MessageReceivedEventArgs>? UnicastMessageReceivedEventHandler;
-  public event EventHandler<StateChangedEventArgs>? StateChangedEventHandler;
-  public event EventHandler<ClientSessionInfoEventArgs>? ClientConnectedEventHandler;
-  public event EventHandler<ClientSessionInfoEventArgs>? ClientDisconnectedEventHandler;
 
   public void StartListeningForConnections()
   {
@@ -225,7 +220,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
           case (_, Target.Individual) when message.Recipient is not null:
             if (message.Recipient == SERVER_INFO)
             {
-              RaiseReceivedUnicastMessage(message);
+              _eventEmitter.EmitReceivedUnicastMessage(message);
               continue;
             }
 
@@ -234,7 +229,7 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
             continue;
         }
 
-        RaiseReceivedBroadcastMessage(message);
+        _eventEmitter.EmitReceivedBroadcastMessage(message);
 
         await BroadcastMessageToClientsExceptAsync(message, client);
       }
@@ -288,8 +283,8 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
     lock (_clients)
     {
       _clients.Add(client);
-      RaiseChangedClientsCount();
-      RaiseConnectedClient(client);
+      _eventEmitter.EmitChangedClientsCount(_clients.Count);
+      _eventEmitter.EmitConnectedClient(client);
     }
   }
 
@@ -299,8 +294,8 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
     {
       _clients.Remove(client);
       client.Client.Close();
-      RaiseChangedClientsCount();
-      RaiseDisconnectedClient(client);
+      _eventEmitter.EmitChangedClientsCount(_clients.Count);
+      _eventEmitter.EmitDisconnectedClient(client);
     }
   }
 
@@ -313,41 +308,19 @@ public class Server(TcpListener server, IMessageSerializer serializer) : IServer
 
       foreach (var client in clientsToRemove)
       {
-        RaiseDisconnectedClient(client);
+        _eventEmitter.EmitDisconnectedClient(client);
         client.Client.Close();
       }
 
-      RaiseChangedClientsCount();
+      _eventEmitter.EmitChangedClientsCount(_clients.Count);
     }
   }
 
   private void UpdateState(ServerState state)
   {
     State = state;
-    RaiseChangedState();
+    _eventEmitter.EmitChangedState(state);
   }
-
-  private void RaiseChangedState()
-    => StateChangedEventHandler?.Invoke(this, new StateChangedEventArgs(State, null));
-
-  private void RaiseReceivedBroadcastMessage(Core.Models.Message message)
-    => BroadcastMessageReceivedEventHandler?.Invoke(
-      this, new MessageReceivedEventArgs(message, message.Type));
-
-  private void RaiseReceivedUnicastMessage(Core.Models.Message message)
-    => UnicastMessageReceivedEventHandler?.Invoke(
-      this, new MessageReceivedEventArgs(message, message.Type));
-
-  private void RaiseChangedClientsCount()
-    => ClientsCountChangedEventHandler?.Invoke(this, ConnectedClientsCount);
-
-  private void RaiseConnectedClient(ClientSessionInfo clientInfo)
-    => ClientConnectedEventHandler?.Invoke(
-      this, new ClientSessionInfoEventArgs(clientInfo));
-
-  private void RaiseDisconnectedClient(ClientSessionInfo clientInfo)
-    => ClientDisconnectedEventHandler?.Invoke(
-      this, new ClientSessionInfoEventArgs(clientInfo));
 
   public void Dispose()
   {
