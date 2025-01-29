@@ -3,7 +3,6 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network;
-using System.Diagnostics;
 using System.Text;
 
 namespace ChattingApplication;

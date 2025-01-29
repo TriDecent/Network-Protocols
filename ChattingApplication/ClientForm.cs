@@ -1,7 +1,6 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
-using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network;
 using System.Net;
 using System.Text;
