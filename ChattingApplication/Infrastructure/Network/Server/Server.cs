@@ -231,8 +231,16 @@ public class Server : IServer, IServerOperations
 
   private async Task<ClientSessionInfo> CreateClientSessionInfoFromClient(TcpClient client)
   {
-    var stream = client.GetStream();
+    var message = await ReceiveSingleMessageAsync(client.GetStream());
+    var clientInfo = message.Sender;
+    var clientId = Guid.NewGuid().ToString();
+    var newClientInfo = clientInfo with { Id = clientId };
 
+    return new ClientSessionInfo(newClientInfo, client);
+  }
+
+  private async Task<Message> ReceiveSingleMessageAsync(NetworkStream stream)
+  {
     var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
 
     await stream.ReadExactlyAsync(buffer.AsMemory(), _shutdownCTS.Token);
@@ -243,11 +251,8 @@ public class Server : IServer, IServerOperations
     await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
 
     var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
-    var clientInfo = message.Sender;
-    var clientId = Guid.NewGuid().ToString();
-    var newClientInfo = clientInfo with { Id = clientId };
 
-    return new ClientSessionInfo(newClientInfo, client);
+    return message;
   }
 
   private async Task HandleClientMessagesAsync(ClientSessionInfo client)
