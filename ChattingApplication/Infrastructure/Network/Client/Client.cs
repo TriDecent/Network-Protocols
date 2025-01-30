@@ -2,33 +2,34 @@
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Client.Connection;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
+using ChattingApplication.Infrastructure.Network.Client.Operations;
 using System.Net;
-using System.Net.Sockets;
 using static ChattingApplication.Core.Interfaces.IClient;
 using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Client;
 
-public class Client : IClient
+public class Client : IClient, IClientOperations, IDisposable
 {
-  private TcpClient _client;
-  private readonly IClientEventEmitter _eventEmitter;
-  private readonly IClientSideMessageProcessor _messageProcessor;
   public ClientInfo ClientInfo { get; private set; }
-  private CancellationTokenSource _cts = new();
   public ClientState State { get; private set; } = ClientState.Disconnected;
 
+  private CancellationTokenSource _cts = new();
+
+  private readonly IClientConnection _connection;
+  private readonly IClientSideMessageProcessor _messageProcessor;
+
   public Client(
-    TcpClient tcpClient,
-    ClientInfo clientInfo,
-    IMessageSerializer serializer,
-    IClientEventEmitter eventEmitter)
+  IClientConnection connection,
+  ClientInfo clientInfo,
+  IMessageSerializer serializer,
+  IClientEventEmitter eventEmitter)
   {
     ClientInfo = clientInfo;
-    _client = tcpClient;
-    _eventEmitter = eventEmitter;
+    _connection = connection;
     _messageProcessor = new ClientSideMessageProcessor(
       serializer,
       eventEmitter,
@@ -37,43 +38,30 @@ public class Client : IClient
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)
   {
-    try
-    {
-      UpdateState(ClientState.Connecting);
-      await _client.ConnectAsync(ipEndPoint);
-      await TransferCurrentClientInfoToServer();
-      await RequestClientIdFromServer();
-      UpdateState(ClientState.Connected);
+    UpdateState(ClientState.Connecting);
+    var result = await _connection.ConnectAsync(ipEndPoint, _cts.Token);
 
-      _ = HandleReceivedMessageAsync().ContinueWith(cancelledTask =>
-      {
-        // Do nothing, valid cancellation
-      }, TaskContinuationOptions.OnlyOnCanceled);
-
-      return new ConnectionResult { Success = true };
-    }
-    catch (SocketException ex)
+    if (!result.Success)
     {
       UpdateState(ClientState.Failed);
-      return new ConnectionResult
-      {
-        Success = false,
-        ErrorMessage = GetSocketErrorMessage(ex.SocketErrorCode)
-      };
+      return result;
     }
+
+    UpdateState(ClientState.Connected);
+    await TransferCurrentClientInfoToServer();
+    await RequestClientIdFromServer();
+    _ = HandleReceivedMessageAsync();
+
+    return result;
   }
 
   public void DisconnectFromServer()
   {
-    if (!_client.Connected) return;
-
     UpdateState(ClientState.Disconnecting);
 
     _cts.Cancel();
     _cts = new();
-
-    _client.Close();
-    _client = new TcpClient();
+    _connection.Disconnect();
 
     UpdateState(ClientState.Disconnected);
   }
@@ -84,36 +72,14 @@ public class Client : IClient
   public async Task SendMessageAsync(Message message)
   {
     var messageBytes = await _messageProcessor.PrepareOutgoingMessageAsync(message);
-    await SendBytesAsync(messageBytes);
-  }
-
-  private async Task SendBytesAsync(ReadOnlyMemory<byte> bytes)
-  {
-    var stream = _client.GetStream();
-    try
-    {
-      await stream.WriteAsync(bytes, _cts.Token);
-    }
-    catch (IOException ex)
-    {
-      UpdateState(ClientState.Disconnected);
-      _client = new TcpClient();
-
-      throw new IOException("Connection to server was lost", ex);
-    }
-  }
-
-  private void UpdateState(ClientState state)
-  {
-    State = state;
-    _eventEmitter.EmitStateChanged(state);
+    await _connection.SendBytesAsync(messageBytes, _cts.Token);
   }
 
   private async Task HandleReceivedMessageAsync()
   {
     try
     {
-      var stream = _client.GetStream();
+      var stream = _connection.GetStream();
       await _messageProcessor.HandleMessageFromStreamAsync(stream, _cts.Token);
     }
     catch (EndOfStreamException)
@@ -121,6 +87,10 @@ public class Client : IClient
       DisconnectFromServer();
     }
   }
+
+  private void UpdateState(ClientState newState) => State = newState;
+
+  public void Dispose() => _connection.Dispose();
 
   private async Task TransferCurrentClientInfoToServer()
   {
@@ -136,23 +106,5 @@ public class Client : IClient
       ClientInfo, [], MessageType.Any, Target.Server, MessageRequest.GetCreationUserId);
 
     await SendMessageAsync(message);
-  }
-
-  private static string GetSocketErrorMessage(SocketError errorCode) => errorCode switch
-  {
-    SocketError.ConnectionRefused =>
-      "Could not connect to the server. Please try again later.",
-    SocketError.TimedOut =>
-      "Connection attempt timed out. The server is not responding.",
-    SocketError.HostUnreachable or SocketError.NetworkUnreachable =>
-      "The server is not reachable. Please check your internet connection.",
-    _ => "An unexpected error occurred. Please try again later."
-  };
-
-  public void Dispose()
-  {
-    _cts.Cancel();
-    _cts.Dispose();
-    _client.Dispose();
   }
 }
