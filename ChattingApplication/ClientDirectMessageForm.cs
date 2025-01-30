@@ -1,9 +1,9 @@
 ﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
-using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
+using ChattingApplication.Infrastructure.Network.Client.Operations;
 using System.Text;
 using Message = ChattingApplication.Core.Models.Message;
 
@@ -23,7 +23,7 @@ public partial class ClientDirectMessageForm : Form
   private readonly string _interactingId;
 
   public ClientDirectMessageForm(
-    ClientInfo sender, ClientInfo recipient, IClient client, IClientEventEmitter eventEmitter)
+    ClientInfo sender, ClientInfo recipient, IClientOperations operations, IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
 
@@ -42,18 +42,21 @@ public partial class ClientDirectMessageForm : Form
     _interactingId = recipient.Id;
 
     _sendButton.Click += async (s, e) =>
-      await OnSendMessageClickedAsync(sender, recipient, client);
+      await OnSendMessageClickedAsync(sender, recipient, operations);
     _attachItemButton.Click += (s, e) => OnAttachButtonClicked();
     _detachItemButton.Click += (s, e) => OnDetachButtonClicked();
 
     eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
   }
 
-  private async Task OnSendMessageClickedAsync(ClientInfo sender, ClientInfo recipient, IClient client)
+  private async Task OnSendMessageClickedAsync(
+    ClientInfo sender,
+    ClientInfo recipient,
+    IClientOperations operations)
   {
     if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-    await SendContent(sender, _messageTextBox.Text, client, recipient);
+    await SendContent(sender, _messageTextBox.Text, operations, recipient);
     ClearUserMessageInput();
   }
 
@@ -66,20 +69,29 @@ public partial class ClientDirectMessageForm : Form
 
     if (e.Message.Type == MessageType.Image)
     {
-      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage(), false);
+      _chatRenderer.DisplayImage(
+        messageOwner, e.Message.Content.BytesToImage(), false);
       return;
     }
 
-    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
+    _chatRenderer.DisplayMessage(
+      messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
   }
 
   private Task SendContent(
-    ClientInfo sender, string content, IClient client, ClientInfo recipient)
+    ClientInfo sender,
+    string content,
+    IClientOperations operations,
+    ClientInfo recipient)
       => _isSendingImage ?
-      SendImageAsync(sender, content, client, recipient) :
-      SendTextAsync(sender, content, client, recipient);
+      SendImageAsync(sender, content, operations, recipient) :
+      SendTextAsync(sender, content, operations, recipient);
 
-  private async Task SendImageAsync(ClientInfo sender, string filePath, IClient client, ClientInfo recipient)
+  private async Task SendImageAsync(
+    ClientInfo sender,
+    string filePath,
+    IClientOperations operations,
+    ClientInfo recipient)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
@@ -88,11 +100,15 @@ public partial class ClientDirectMessageForm : Form
       MessageType.Image,
       recipient);
 
-    await SendAndDisplayAsync(message, client, () =>
+    await SendAndDisplayAsync(message, operations, () =>
       _chatRenderer.DisplayImage(sender.Name, image, true));
   }
 
-  private async Task SendTextAsync(ClientInfo sender, string text, IClient client, ClientInfo recipient)
+  private async Task SendTextAsync(
+    ClientInfo sender,
+    string text,
+    IClientOperations operations,
+    ClientInfo recipient)
   {
     var message = CreateMessage(
       sender,
@@ -100,7 +116,7 @@ public partial class ClientDirectMessageForm : Form
       MessageType.Text,
       recipient);
 
-    await SendAndDisplayAsync(message, client, () =>
+    await SendAndDisplayAsync(message, operations, () =>
       _chatRenderer.DisplayMessage(sender.Name, text, true));
   }
 
@@ -116,10 +132,10 @@ public partial class ClientDirectMessageForm : Form
 
   private static async Task SendAndDisplayAsync(
     Message message,
-    IClient client,
+    IClientOperations operation,
     Action displayAction)
   {
-    await client.SendMessageAsync(message);
+    await operation.SendMessageAsync(message);
     displayAction();
   }
 

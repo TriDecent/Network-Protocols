@@ -3,6 +3,7 @@ using ChattingApplication.Common.Events;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
+using ChattingApplication.Infrastructure.Network.Client.Operations;
 using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
 
@@ -17,6 +18,7 @@ public partial class ClientOnlineClientsForm : Form
   public ClientOnlineClientsForm(
     ClientInfo senderInfo,
     IClient client,
+    IClientOperations operations,
     IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
@@ -32,7 +34,7 @@ public partial class ClientOnlineClientsForm : Form
     eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
 
     _timerUpdateClients.Tick += (s, e) =>
-      _ = client.SendMessageAsync(
+      _ = operations.SendMessageAsync(
         new Message(
           client.ClientInfo,
           [],
@@ -43,7 +45,7 @@ public partial class ClientOnlineClientsForm : Form
     _timerUpdateClients.Start();
 
     _lvOnlineClients.DoubleClick += (s, e)
-      => OnClientDoubleClick(senderInfo, client, eventEmitter);
+      => OnClientDoubleClick(senderInfo, operations, eventEmitter);
   }
   private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
@@ -70,7 +72,7 @@ public partial class ClientOnlineClientsForm : Form
 
   private void OnClientDoubleClick(
     ClientInfo senderInfo,
-    IClient client,
+    IClientOperations operations,
     IClientEventEmitter eventEmitter)
   {
     if (_lvOnlineClients.SelectedItems.Count == 0) return;
@@ -82,7 +84,7 @@ public partial class ClientOnlineClientsForm : Form
       new ClientDirectMessageForm(
         senderInfo,
         SERVER_INFO,
-        client,
+        operations,
         eventEmitter).Show();
       return;
     }
@@ -91,7 +93,7 @@ public partial class ClientOnlineClientsForm : Form
     new ClientDirectMessageForm(
       senderInfo,
       selectedRecipient,
-      client,
+      operations,
       eventEmitter).Show();
   }
 }

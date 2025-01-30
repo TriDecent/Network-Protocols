@@ -1,7 +1,10 @@
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
 using ChattingApplication.Infrastructure.Network.Client;
+using ChattingApplication.Infrastructure.Network.Client.Connection;
+using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using System.Net;
 using System.Net.Sockets;
 
@@ -32,13 +35,19 @@ namespace ChattingApplication
       using var tcpClient2 = new TcpClient();
       using var tcpClient3 = new TcpClient();
 
+      var connection1 = new TcpClientConnection(tcpClient1, clientEventEmitter1);
+      var connection2 = new TcpClientConnection(tcpClient2, clientEventEmitter2);
+      var connection3 = new TcpClientConnection(tcpClient3, clientEventEmitter3);
+
+      // not use using, let form handle life cycle
       var account1 = new ClientInfo("", "");
       var account2 = new ClientInfo("", "");
       var account3 = new ClientInfo("", "");
 
-      var client1 = new Client(tcpClient1, account1, serializer, clientEventEmitter1);  // not use using, let form handle life cycle
-      var client2 = new Client(tcpClient2, account2, serializer, clientEventEmitter2);  // not use using, let form handle life cycle
-      var client3 = new Client(tcpClient3, account3, serializer, clientEventEmitter3);  // not use using, let form handle life cycle
+      var client1 = new Client(connection1, account1, serializer, clientEventEmitter1);
+      var client2 = new Client(connection2, account2, serializer, clientEventEmitter2);
+      var client3 = new Client(connection3, account3, serializer, clientEventEmitter3);
+      // not use using, let form handle life cycle
 
       var clientForm1 = new ClientForm(client1, clientEventEmitter1);
       var clientForm2 = new ClientForm(client2, clientEventEmitter2);

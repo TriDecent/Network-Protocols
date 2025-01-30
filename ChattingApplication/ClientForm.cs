@@ -69,7 +69,11 @@ public partial class ClientForm : Form
       EnableConnectButtonBasedOnServerInput();
 
     _directMessageButton.Click += (s, e)
-      => new ClientOnlineClientsForm(_client.ClientInfo, _client, eventEmitter).Show();
+      => new ClientOnlineClientsForm(
+        senderInfo: _client.ClientInfo,
+        client: _client,
+        operations: _client,
+        eventEmitter: eventEmitter).Show();
   }
 
   private void EnableConnectButtonBasedOnServerInput()
