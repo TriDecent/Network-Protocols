@@ -1,15 +1,11 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Models;
-using System.Net;
+using ChattingApplication.Infrastructure.Network.Client.Connection;
 
 namespace ChattingApplication.Core.Interfaces;
 
-public interface IClient : IDisposable
+public interface IClient
 {
-  Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint);
-  void DisconnectFromServer();
-  Task SendMessageAsync(Models.Message message);
-  void UpdateName(string newName);
   ClientInfo ClientInfo { get; }
   ClientState State { get; }
 
