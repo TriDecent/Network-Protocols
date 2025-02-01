@@ -7,11 +7,9 @@ using static ChattingApplication.Core.Interfaces.IClient;
 namespace ChattingApplication.Infrastructure.Network.Client.Connection;
 
 public class TcpClientConnection(
-  TcpClient client,
-  IClientEventEmitter eventEmitter) : IClientConnection
+  TcpClient client) : IClientConnection
 {
   private TcpClient _client = client;
-  private readonly IClientEventEmitter _eventEmitter = eventEmitter;
 
   public bool IsConnected => _client.Connected;
 
@@ -20,14 +18,11 @@ public class TcpClientConnection(
   {
     try
     {
-      _eventEmitter.EmitStateChanged(ClientState.Connecting);
       await _client.ConnectAsync(endpoint, token);
-      _eventEmitter.EmitStateChanged(ClientState.Connected);
       return new ConnectionResult { Success = true };
     }
     catch (SocketException ex)
     {
-      _eventEmitter.EmitStateChanged(ClientState.Failed);
       return new ConnectionResult
       {
         Success = false,
@@ -40,12 +35,8 @@ public class TcpClientConnection(
   {
     if (!IsConnected) return;
 
-    _eventEmitter.EmitStateChanged(ClientState.Disconnecting);
-
     _client.Close();
     _client = new TcpClient();
-
-    _eventEmitter.EmitStateChanged(ClientState.Disconnected);
   }
 
   public async Task SendBytesAsync(ReadOnlyMemory<byte> data, CancellationToken token)
@@ -57,7 +48,6 @@ public class TcpClientConnection(
     }
     catch (IOException) // Connection to Server was lost
     {
-      _eventEmitter.EmitStateChanged(ClientState.Disconnected);
       _client = new TcpClient();
       throw;
     }

@@ -21,6 +21,7 @@ public class Client : IClient, IClientOperations, IDisposable
 
   private readonly IClientConnection _connection;
   private readonly IClientSideMessageProcessor _messageProcessor;
+  private readonly IClientEventEmitter _eventEmitter;
 
   public Client(
   IClientConnection connection,
@@ -30,6 +31,7 @@ public class Client : IClient, IClientOperations, IDisposable
   {
     ClientInfo = clientInfo;
     _connection = connection;
+    _eventEmitter = eventEmitter;
     _messageProcessor = new ClientSideMessageProcessor(
       serializer,
       eventEmitter,
@@ -88,7 +90,11 @@ public class Client : IClient, IClientOperations, IDisposable
     }
   }
 
-  private void UpdateState(ClientState newState) => State = newState;
+  private void UpdateState(ClientState newState)
+  {
+    State = newState;
+    _eventEmitter.EmitStateChanged(newState);
+  }
 
   public void Dispose() => _connection.Dispose();
 
