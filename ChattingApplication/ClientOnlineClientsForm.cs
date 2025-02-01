@@ -15,6 +15,9 @@ public partial class ClientOnlineClientsForm : Form
   private readonly ListView _lvOnlineClients;
   private readonly System.Windows.Forms.Timer _timerUpdateClients;
 
+  private readonly EventHandler _timerTickHandler;
+  private readonly EventHandler<MessageReceivedEventArgs> _messageReceivedHandler;
+
   public ClientOnlineClientsForm(
     ClientInfo senderInfo,
     IClient client,
@@ -31,9 +34,10 @@ public partial class ClientOnlineClientsForm : Form
     _lvOnlineClients.MultiSelect = false;
     _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
+    _messageReceivedHandler = OnUnicastMessageReceived;
+    eventEmitter.UnicastMessageReceived += _messageReceivedHandler;
 
-    _timerUpdateClients.Tick += (s, e) =>
+    _timerTickHandler += (s, e) =>
       _ = operations.SendMessageAsync(
         new Message(
           client.ClientInfo,
@@ -41,11 +45,14 @@ public partial class ClientOnlineClientsForm : Form
           MessageType.Any,
           Target.Server,
           MessageRequest.GetClientsInfo));
+    _timerUpdateClients.Tick += _timerTickHandler;
 
     _timerUpdateClients.Start();
 
     _lvOnlineClients.DoubleClick += (s, e)
       => OnClientDoubleClick(senderInfo, operations, eventEmitter);
+
+    FormClosing += (s, e) => CleanupHandlers(eventEmitter);
   }
   private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
@@ -95,5 +102,12 @@ public partial class ClientOnlineClientsForm : Form
       selectedRecipient,
       operations,
       eventEmitter).Show();
+  }
+
+  private void CleanupHandlers(IClientEventEmitter eventEmitter)
+  {
+    _timerUpdateClients.Stop();
+    _timerUpdateClients.Tick -= _timerTickHandler;
+    eventEmitter.UnicastMessageReceived -= _messageReceivedHandler;
   }
 }

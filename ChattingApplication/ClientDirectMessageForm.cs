@@ -74,7 +74,7 @@ public partial class ClientDirectMessageForm : Form
     _activeRecipientCheckTimer.Tick += _timerTickHandler;
     _activeRecipientCheckTimer.Start();
 
-    FormClosing += (s,e) => CleanupHandlers(eventEmitter);
+    FormClosing += (s, e) => CleanupHandlers(eventEmitter);
   }
 
   private async Task OnSendMessageClickedAsync(
@@ -211,12 +211,8 @@ public partial class ClientDirectMessageForm : Form
 
   private void CleanupHandlers(IClientEventEmitter eventEmitter)
   {
-    if (_activeRecipientCheckTimer != null)
-    {
-      _activeRecipientCheckTimer.Stop();
-      _activeRecipientCheckTimer.Tick -= _timerTickHandler;
-    }
-
+    _activeRecipientCheckTimer.Stop();
+    _activeRecipientCheckTimer.Tick -= _timerTickHandler;
     eventEmitter.UnicastMessageReceived -= _messageReceivedHandler;
   }
 }
