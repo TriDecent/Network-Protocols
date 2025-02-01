@@ -27,6 +27,7 @@ public partial class ClientForm : Form
   private readonly ChatMessageRenderer _chatRenderer;
 
   private bool _isSendingImage = false;
+  private ClientOnlineClientsForm? _onlineClientsForm;
 
   public ClientForm(Client client, IClientEventEmitter eventEmitter)
   {
@@ -49,7 +50,7 @@ public partial class ClientForm : Form
     _client = client;
     _eventEmitter = eventEmitter;
 
-    _eventEmitter.StateChanged += OnStatusChanged;
+    _eventEmitter.StateChanged += OnStateChanged;
     _eventEmitter.BroadcastMessageReceived += OnBroadcastMessageReceived;
 
     FormClosing += (s, e) => _client?.Dispose();
@@ -68,22 +69,32 @@ public partial class ClientForm : Form
     _serverIPTextBox.TextChanged += (s, e) =>
       EnableConnectButtonBasedOnServerInput();
 
-    _directMessageButton.Click += (s, e)
-      => new ClientOnlineClientsForm(
-        senderInfo: _client.ClientInfo,
-        client: _client,
-        operations: _client,
-        eventEmitter: eventEmitter).Show();
+    _directMessageButton.Click += (s, e) =>
+    {
+      if (_onlineClientsForm?.IsDisposed == false)
+      {
+        _onlineClientsForm.Focus();
+        return;
+      }
+
+      _onlineClientsForm = new ClientOnlineClientsForm(
+        _client.ClientInfo,
+        _client,
+        _client,
+        _eventEmitter);
+      
+      _onlineClientsForm.Show();
+    };
   }
 
   private void EnableConnectButtonBasedOnServerInput()
   {
     _connectServerButton.Enabled =
-       IPAddressValidator.IsValidIP(_serverIPTextBox.Text.Trim()) &&
-       IPAddressValidator.IsValidPort(_serverPortTextBox.Text.Trim());
+      IPAddressValidator.IsValidIP(_serverIPTextBox.Text.Trim()) &&
+      IPAddressValidator.IsValidPort(_serverPortTextBox.Text.Trim());
   }
 
-  private void OnStatusChanged(object? sender, StateChangedEventArgs e)
+  private void OnStateChanged(object? sender, StateChangedEventArgs e)
   {
     var clientState = e.ClientState;
 
@@ -106,6 +117,9 @@ public partial class ClientForm : Form
     _disconnectServerButton.Visible = isConnected;
 
     _directMessageButton.Visible = isConnected;
+
+    if (clientState != ClientState.Disconnected) return;
+    _onlineClientsForm?.Close();
   }
   private void OnBroadcastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
