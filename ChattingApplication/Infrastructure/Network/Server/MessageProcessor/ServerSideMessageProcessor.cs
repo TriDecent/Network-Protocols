@@ -71,7 +71,7 @@ public class ServerSideMessageProcessor(
           break;
         }
 
-        var recipient = _clientOps.FindRecipient(message.Recipient);
+        var recipient = _clientOps.FindRecipient(message.Recipient.Value);
         if (recipient != null)
         {
           await _clientOps.ForwardMessageToClientAsync(recipient, message);
