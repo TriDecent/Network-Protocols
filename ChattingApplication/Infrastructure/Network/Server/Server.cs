@@ -2,6 +2,7 @@ using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
+using ChattingApplication.Infrastructure.Network.Server.Connection;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
@@ -15,11 +16,11 @@ using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Server;
 
-public class Server : IServer, IServerOperations
+public class Server : IServer, IServerOperations, IDisposable
 {
   private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
-  private readonly TcpListener _server;
+  private readonly IServerConnection _connection;
   private readonly IMessageSerializer _serializer;
   private readonly IServerEventEmitter _eventEmitter;
   private readonly IServerSideMessageProcessor _messageProcessor;
@@ -27,12 +28,9 @@ public class Server : IServer, IServerOperations
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<ClientSessionInfo> _clients = [];
 
-  private bool _isListening = false;
-  private bool _isRunning = false;
-
   public ServerState State { get; private set; } = ServerState.Shutdown;
 
-  public IPEndPoint ServerEndPoint => (IPEndPoint)_server.LocalEndpoint;
+  public IPEndPoint ServerEndPoint => _connection.LocalEndPoint;
 
   public IReadOnlyList<ClientSessionInfo> ClientsInfo
   {
@@ -46,11 +44,11 @@ public class Server : IServer, IServerOperations
   }
 
   public Server(
-    TcpListener server,
+    IServerConnection connection,
     IMessageSerializer serializer,
     IServerEventEmitter eventEmitter)
   {
-    _server = server;
+    _connection = connection;
     _serializer = serializer;
     _eventEmitter = eventEmitter;
 
@@ -62,44 +60,39 @@ public class Server : IServer, IServerOperations
 
   public void StartListeningForConnections()
   {
-    if (_isListening) return;
+    if (_connection.IsListening) return;
 
     UpdateState(ServerState.Starting);
-    _server.Start();
-    _isListening = true;
-    _isRunning = true;
+    _connection.StartListening();
+
     UpdateState(ServerState.Listening);
   }
 
   public void StopListeningForConnections()
   {
-    if (!_isListening) return;
+    if (!_connection.IsListening) return;
 
     UpdateState(ServerState.Stopping);
-    _server.Stop();
+    _connection.StopListening();
 
     _listeningCTS.Cancel();
     _listeningCTS = new();
-
-    _isListening = false;
 
     UpdateState(ServerState.Stopped);
   }
 
   public void ShutdownAllConnections()
   {
-    if (!_isRunning) return;
+    if (!_connection.IsRunning) return;
 
     UpdateState(ServerState.ShuttingDown);
-    _server.Stop();
+    _connection.ShutDown();
+
     _listeningCTS.Cancel();
     _shutdownCTS.Cancel();
 
     _shutdownCTS = new();
     _listeningCTS = new();
-
-    _isListening = false;
-    _isRunning = false;
 
     RemoveAllClients();
 
@@ -113,7 +106,7 @@ public class Server : IServer, IServerOperations
       TcpClient client;
       try
       {
-        client = await _server.AcceptTcpClientAsync(_listeningCTS.Token);
+        client = await _connection.AcceptClientAsync(_listeningCTS.Token);
       }
       catch (OperationCanceledException)
       {
@@ -330,6 +323,6 @@ public class Server : IServer, IServerOperations
       _clients.Clear();
     }
 
-    _server.Dispose();
+    _connection.Dispose();
   }
 }

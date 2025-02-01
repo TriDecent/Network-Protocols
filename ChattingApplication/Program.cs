@@ -4,6 +4,7 @@ using ChattingApplication.Infrastructure.Network.Client;
 using ChattingApplication.Infrastructure.Network.Client.Connection;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server;
+using ChattingApplication.Infrastructure.Network.Server.Connection;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using System.Net;
 using System.Net.Sockets;
@@ -55,7 +56,8 @@ namespace ChattingApplication
 
       var ipEndPoint = new IPEndPoint(IPAddress.Parse("192.168.2.215"), 1211);
       using var tcpListener = new TcpListener(ipEndPoint);
-      var server = new Server(tcpListener, serializer, serverEventEmitter);  // not use using, let form handle life cycle
+      using var tcpServerConnection = new TcpServerConnection(tcpListener);
+      var server = new Server(tcpServerConnection, serializer, serverEventEmitter);  // not use using, let form handle life cycle
 
       var serverForm = new ServerForm(server, serverEventEmitter);
 
