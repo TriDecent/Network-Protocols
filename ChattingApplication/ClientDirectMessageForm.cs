@@ -1,4 +1,4 @@
-﻿using ChattingApplication.Common.Enums;
+using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
@@ -20,12 +20,23 @@ public partial class ClientDirectMessageForm : Form
 
   private bool _isSendingImage = false;
 
-  private readonly string _interactingId;
+  private readonly ClientInfo _sender;
+  private readonly ClientInfo _recipient;
+
+  private readonly Timer _activeRecipientCheckTimer;
+  private readonly EventHandler _timerTickHandler;
+  private EventHandler<MessageReceivedEventArgs>? _messageReceivedHandler;
 
   public ClientDirectMessageForm(
-    ClientInfo sender, ClientInfo recipient, IClientOperations operations, IClientEventEmitter eventEmitter)
+    ClientInfo sender,
+    ClientInfo recipient,
+    IClientOperations operations,
+    IClientEventEmitter eventEmitter)
   {
     InitializeComponent();
+
+    _sender = sender;
+    _recipient = recipient;
 
     _recipientNameLabel = lblRecipientName;
     _senderNameLabel = lblSenderName;
@@ -50,74 +61,84 @@ public partial class ClientDirectMessageForm : Form
   }
 
   private async Task OnSendMessageClickedAsync(
-    ClientInfo sender,
-    ClientInfo recipient,
     IClientOperations operations)
   {
     if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-    await SendContent(sender, _messageTextBox.Text, operations, recipient);
+    await SendContent(_messageTextBox.Text, operations);
     ClearUserMessageInput();
   }
 
-  private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
+  private void OnUnicastMessageReceived(
+    Message message)
   {
-    if (e.Message.Type is MessageType.ActiveClientsInfo) return;
-    if (e.Message.Sender.Id != _interactingId) return;
+    if (message.Type is MessageType.ActiveClientsInfo)
+    {
+      var clientsInfo = JsonSerializer.Deserialize<IEnumerable<ClientInfo>>(message.Content);
+      var isRecipientActive = clientsInfo?.Any(client => client.Id == _recipient.Id) ?? false;
+      if (!isRecipientActive)
+      {
+        MessageBox.Show(
+          "The recipient is no longer active. " +
+          "They cannot receive your message anymore.",
+          "Recipient Inactive",
+          MessageBoxButtons.OK,
+          MessageBoxIcon.Warning);
+        Close();
+      }
 
-    var messageOwner = e.Message.Sender.Name;
+      return;
+    }
 
-    if (e.Message.Type == MessageType.Image)
+    if (message.Sender.Id != _recipient.Id) return;
+
+    var messageOwner = message.Sender.Name;
+
+    if (message.Type == MessageType.Image)
     {
       _chatRenderer.DisplayImage(
-        messageOwner, e.Message.Content.BytesToImage(), false);
+        messageOwner, message.Content.BytesToImage(), false);
       return;
     }
 
     _chatRenderer.DisplayMessage(
-      messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
+      messageOwner, Encoding.UTF8.GetString(message.Content), false);
   }
 
   private Task SendContent(
-    ClientInfo sender,
     string content,
-    IClientOperations operations,
-    ClientInfo recipient)
+    IClientOperations operations)
       => _isSendingImage ?
-      SendImageAsync(sender, content, operations, recipient) :
-      SendTextAsync(sender, content, operations, recipient);
+      SendImageAsync(content, operations) :
+      SendTextAsync(content, operations);
 
   private async Task SendImageAsync(
-    ClientInfo sender,
     string filePath,
-    IClientOperations operations,
-    ClientInfo recipient)
+    IClientOperations operations)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
-      sender,
+      _sender,
       ImageByteConverter.ImageToBytes(image),
       MessageType.Image,
-      recipient);
+      _recipient);
 
     await SendAndDisplayAsync(message, operations, () =>
-      _chatRenderer.DisplayImage(sender.Name, image, true));
+      _chatRenderer.DisplayImage(_sender.Name, image, true));
   }
 
   private async Task SendTextAsync(
-    ClientInfo sender,
     string text,
-    IClientOperations operations,
-    ClientInfo recipient)
+    IClientOperations operations)
   {
     var message = CreateMessage(
-      sender,
+      _sender,
       Encoding.UTF8.GetBytes(text),
       MessageType.Text,
-      recipient);
+      _recipient);
 
     await SendAndDisplayAsync(message, operations, () =>
-      _chatRenderer.DisplayMessage(sender.Name, text, true));
+      _chatRenderer.DisplayMessage(_sender.Name, text, true));
   }
 
   private static Message CreateMessage(
