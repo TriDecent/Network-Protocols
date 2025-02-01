@@ -1,11 +1,13 @@
 ﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
+using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
 using System.Text;
 using Message = ChattingApplication.Core.Models.Message;
+using Timer = System.Windows.Forms.Timer;
 
 namespace ChattingApplication;
 
@@ -18,13 +20,15 @@ public partial class ServerDirectMessageForm : Form
   private readonly TextBox _messageTextBox;
   private readonly RichTextBox _chatDisplayArea;
   private readonly ChatMessageRenderer _chatRenderer;
+  private readonly Timer _activeRecipientCheckTimer;
 
   private bool _isSendingImage = false;
 
   private readonly string _interactingClientId;
 
   public ServerDirectMessageForm(
-    IServerOperations server,
+    IServer server,
+    IServerOperations operation,
     IServerEventEmitter eventEmitter,
     ClientSessionInfo recipient)
   {
@@ -36,19 +40,51 @@ public partial class ServerDirectMessageForm : Form
     _detachItemButton = btnDetach;
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
+    _activeRecipientCheckTimer = RecipientActivityCheckTimer;
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
     _interactingClientId = recipient.Info.Id;
 
     _clientNameLabel.Text = recipient.Info.Name;
     eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
-    _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, server);
+    _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, operation);
+
+    // Should have a better notifying way
+    // Can implement an event emitter for disconnected client
+    _activeRecipientCheckTimer.Tick += (s, e) => CheckRecipientActivity(server, recipient);
+
+    _activeRecipientCheckTimer.Start();
+  }
+
+  private void CheckRecipientActivity(IServer server, ClientSessionInfo recipient)
+  {
+    var clients = server.ClientsInfo;
+    var isRecipientActive = clients.Any(client => client == recipient);
+    if (!isRecipientActive)
+    {
+      _activeRecipientCheckTimer.Stop();
+      _activeRecipientCheckTimer.Tick -= (s, e) => CheckRecipientActivity(server, recipient);
+
+      MessageBox.Show(
+        "The recipient is no longer active.",
+        "Recipient Inactive",
+        MessageBoxButtons.OK,
+        MessageBoxIcon.Warning);
+      Close();
+    }
   }
 
   private async Task OnSendMessageClickedAsync(ClientSessionInfo recipient, IServerOperations server)
   {
     if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-    await SendContent(recipient, _messageTextBox.Text, server);
+    try
+    {
+      await SendContent(recipient, _messageTextBox.Text, server);
+    }
+    catch (IOException)
+    {
+
+    }
     ClearUserMessageInput();
   }
 

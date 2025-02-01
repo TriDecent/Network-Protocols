@@ -23,7 +23,10 @@ public partial class ServerOnlineClientsForm : Form
     _lvOnlineClients.MultiSelect = false;
     _lvOnlineClients.Columns.Add("Online Clients", -2, HorizontalAlignment.Left);
 
-    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(serverOperations, eventEmitter);
+    _lvOnlineClients.DoubleClick += (s, e) => OnClientDoubleClick(
+      server,
+      serverOperations,
+      eventEmitter);
 
     var clientsInfo = server.ClientsInfo;
     DisplayClientsInfo(clientsInfo);
@@ -79,13 +82,16 @@ public partial class ServerOnlineClientsForm : Form
     }
   }
 
-  private void OnClientDoubleClick(IServerOperations server, IServerEventEmitter eventEmitter)
+  private void OnClientDoubleClick(
+    IServer server,
+    IServerOperations operation,
+    IServerEventEmitter eventEmitter)
   {
     if (_lvOnlineClients.SelectedItems.Count == 0) return;
 
     var selectedItem = _lvOnlineClients.SelectedItems[0];
     var clientInfo = (ClientSessionInfo)selectedItem.Tag!;
 
-    new ServerDirectMessageForm(server, eventEmitter, clientInfo).Show();
+    new ServerDirectMessageForm(server, operation, eventEmitter, clientInfo).Show();
   }
 }

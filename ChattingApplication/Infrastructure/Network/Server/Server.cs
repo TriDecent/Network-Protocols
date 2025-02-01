@@ -38,7 +38,7 @@ public class Server : IServer, IServerOperations, IDisposable
     {
       lock (_clients)
       {
-        return _clients.ToList().AsReadOnly();
+        return [.. _clients];
       }
     }
   }

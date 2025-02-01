@@ -28,6 +28,7 @@
     /// </summary>
     private void InitializeComponent()
     {
+      components = new System.ComponentModel.Container();
       btnDetach = new Button();
       rtbDialogArea = new RichTextBox();
       btnAttach = new Button();
@@ -35,6 +36,7 @@
       lblDM = new Label();
       txtMessage = new TextBox();
       lblClientName = new Label();
+      RecipientActivityCheckTimer = new System.Windows.Forms.Timer(components);
       SuspendLayout();
       // 
       // btnDetach
@@ -110,6 +112,10 @@
       lblClientName.TabIndex = 33;
       lblClientName.Text = "Trí Decent";
       // 
+      // CheckingIfPartnerOnlineTimer
+      // 
+      RecipientActivityCheckTimer.Interval = 1000;
+      // 
       // ServerDirectMessageForm
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
@@ -141,5 +147,6 @@
     private Label lblDM;
     private TextBox txtMessage;
     private Label lblClientName;
+    private System.Windows.Forms.Timer RecipientActivityCheckTimer;
   }
 }
