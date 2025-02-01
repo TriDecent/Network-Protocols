@@ -1,11 +1,13 @@
-using ChattingApplication.Common.Enums;
+﻿using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.Operations;
 using System.Text;
+using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
+using Timer = System.Windows.Forms.Timer;
 
 namespace ChattingApplication;
 
@@ -45,19 +47,34 @@ public partial class ClientDirectMessageForm : Form
     _detachItemButton = btnDetach;
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
+    _activeRecipientCheckTimer = RecipientActivityCheckTimer;
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
 
     _recipientNameLabel.Text = recipient.Name;
     _senderNameLabel.Text = sender.Name;
 
-    _interactingId = recipient.Id;
-
     _sendButton.Click += async (s, e) =>
-      await OnSendMessageClickedAsync(sender, recipient, operations);
+      await OnSendMessageClickedAsync(operations);
     _attachItemButton.Click += (s, e) => OnAttachButtonClicked();
     _detachItemButton.Click += (s, e) => OnDetachButtonClicked();
 
-    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
+    _messageReceivedHandler = (s, e) => OnUnicastMessageReceived(e.Message);
+    eventEmitter.UnicastMessageReceived += _messageReceivedHandler;
+
+    _timerTickHandler = (s, e) =>
+      _ = operations.SendMessageAsync(
+        new Message(
+          sender,
+          [],
+          MessageType.Any,
+          Target.Server,
+          MessageRequest.GetClientsInfo));
+
+
+    _activeRecipientCheckTimer.Tick += _timerTickHandler;
+    _activeRecipientCheckTimer.Start();
+
+    FormClosing += (s,e) => CleanupHandlers(eventEmitter);
   }
 
   private async Task OnSendMessageClickedAsync(
@@ -191,4 +208,15 @@ public partial class ClientDirectMessageForm : Form
   }
 
   private void ClearUserMessageInput() => _messageTextBox.Text = "";
+
+  private void CleanupHandlers(IClientEventEmitter eventEmitter)
+  {
+    if (_activeRecipientCheckTimer != null)
+    {
+      _activeRecipientCheckTimer.Stop();
+      _activeRecipientCheckTimer.Tick -= _timerTickHandler;
+    }
+
+    eventEmitter.UnicastMessageReceived -= _messageReceivedHandler;
+  }
 }

@@ -28,6 +28,7 @@
     /// </summary>
     private void InitializeComponent()
     {
+      components = new System.ComponentModel.Container();
       lblRecipientName = new Label();
       btnDetach = new Button();
       rtbDialogArea = new RichTextBox();
@@ -36,6 +37,7 @@
       lblDM = new Label();
       txtMessage = new TextBox();
       lblSenderName = new Label();
+      RecipientActivityCheckTimer = new System.Windows.Forms.Timer(components);
       SuspendLayout();
       // 
       // lblRecipientName
@@ -151,5 +153,6 @@
     private Label lblDM;
     private TextBox txtMessage;
     private Label lblSenderName;
+    private System.Windows.Forms.Timer RecipientActivityCheckTimer;
   }
 }
