@@ -9,6 +9,8 @@ namespace ChattingApplication;
 public partial class ServerOnlineClientsForm : Form
 {
   private readonly ListView _lvOnlineClients;
+  private readonly EventHandler<ClientSessionInfoEventArgs> _clientConnectedHandler;
+  private readonly EventHandler<ClientSessionInfoEventArgs> _clientDisconnectedHandler;
 
   public ServerOnlineClientsForm(
     IServer server,
@@ -31,8 +33,13 @@ public partial class ServerOnlineClientsForm : Form
     var clientsInfo = server.ClientsInfo;
     DisplayClientsInfo(clientsInfo);
 
-    eventEmitter.ClientConnected += OnConnectedClient;
-    eventEmitter.ClientDisconnected += OnDisconnectedClient;
+    _clientConnectedHandler = OnConnectedClient;
+    _clientDisconnectedHandler = OnDisconnectedClient;
+
+    eventEmitter.ClientConnected += _clientConnectedHandler;
+    eventEmitter.ClientDisconnected += _clientDisconnectedHandler;
+
+    FormClosing += (s, e) => CleanupHandlers(eventEmitter);
   }
 
   private void DisplayClientsInfo(IEnumerable<ClientSessionInfo> clientsInfo)
@@ -93,5 +100,11 @@ public partial class ServerOnlineClientsForm : Form
     var clientInfo = (ClientSessionInfo)selectedItem.Tag!;
 
     new ServerDirectMessageForm(server, operation, eventEmitter, clientInfo).Show();
+  }
+
+  private void CleanupHandlers(IServerEventEmitter eventEmitter)
+  {
+    eventEmitter.ClientConnected -= _clientConnectedHandler;
+    eventEmitter.ClientDisconnected -= _clientDisconnectedHandler;
   }
 }
