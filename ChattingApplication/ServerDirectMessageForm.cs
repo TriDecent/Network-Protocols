@@ -26,6 +26,9 @@ public partial class ServerDirectMessageForm : Form
 
   private readonly string _interactingClientId;
 
+  private readonly EventHandler _timerTickHandler;
+  private readonly EventHandler<MessageReceivedEventArgs> _messageReceivedHandler;
+
   public ServerDirectMessageForm(
     IServer server,
     IServerOperations operation,
@@ -43,16 +46,21 @@ public partial class ServerDirectMessageForm : Form
     _activeRecipientCheckTimer = RecipientActivityCheckTimer;
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
     _interactingClientId = recipient.Info.Id;
-
     _clientNameLabel.Text = recipient.Info.Name;
-    eventEmitter.UnicastMessageReceived += OnUnicastMessageReceived;
-    _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, operation);
 
+    _messageReceivedHandler = (s, e) => OnUnicastMessageReceived(e.Message);
     // Should have a better notifying way
     // Can implement an event emitter for disconnected client
-    _activeRecipientCheckTimer.Tick += (s, e) => CheckRecipientActivity(server, recipient);
+    _timerTickHandler = (s, e) => CheckRecipientActivity(server, recipient);
+
+    eventEmitter.UnicastMessageReceived += _messageReceivedHandler;
+    _activeRecipientCheckTimer.Tick += _timerTickHandler;
+
+    _sendButton.Click += async (s, e) => await OnSendMessageClickedAsync(recipient, operation);
 
     _activeRecipientCheckTimer.Start();
+
+    FormClosing += (s, e) => CleanupHandlers(eventEmitter);
   }
 
   private void CheckRecipientActivity(IServer server, ClientSessionInfo recipient)
@@ -88,20 +96,20 @@ public partial class ServerDirectMessageForm : Form
     ClearUserMessageInput();
   }
 
-  private void OnUnicastMessageReceived(object? sender, MessageReceivedEventArgs e)
+  private void OnUnicastMessageReceived(Message message)
   {
-    if (e.Message.Type is MessageType.ActiveClientsInfo) return;
-    if (_interactingClientId != e.Message.Sender.Id) return;
+    if (message.Type is MessageType.ActiveClientsInfo) return;
+    if (_interactingClientId != message.Sender.Id) return;
 
-    var messageOwner = e.Message.Sender.Name;
+    var messageOwner = message.Sender.Name;
 
-    if (e.Message.Type == MessageType.Image)
+    if (message.Type == MessageType.Image)
     {
-      _chatRenderer.DisplayImage(messageOwner, e.Message.Content.BytesToImage(), false);
+      _chatRenderer.DisplayImage(messageOwner, message.Content.BytesToImage(), false);
       return;
     }
 
-    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(e.Message.Content), false);
+    _chatRenderer.DisplayMessage(messageOwner, Encoding.UTF8.GetString(message.Content), false);
   }
 
   private Task SendContent(ClientSessionInfo recipient, string content, IServerOperations server)
@@ -179,4 +187,11 @@ public partial class ServerDirectMessageForm : Form
   }
 
   private void ClearUserMessageInput() => _messageTextBox.Text = "";
+
+  private void CleanupHandlers(IServerEventEmitter eventEmitter)
+  {
+    _activeRecipientCheckTimer.Stop();
+    _activeRecipientCheckTimer.Tick -= _timerTickHandler;
+    eventEmitter.UnicastMessageReceived -= _messageReceivedHandler;
+  }
 }
