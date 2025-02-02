@@ -82,7 +82,7 @@ public partial class ClientForm : Form
         _client,
         _client,
         _eventEmitter);
-      
+
       _onlineClientsForm.Show();
     };
   }
@@ -121,6 +121,7 @@ public partial class ClientForm : Form
     if (clientState != ClientState.Disconnected) return;
     _onlineClientsForm?.Close();
   }
+
   private void OnBroadcastMessageReceived(object? sender, MessageReceivedEventArgs e)
   {
     var messageOwner = e.Message.Sender.Name;

@@ -27,7 +27,7 @@ public partial class ServerForm : Form
 
   private bool _isSendingImage;
 
-  private static ServerOnlineClientsForm? _dmForm;
+  private static ServerOnlineClientsForm? _onlineClientsForm;
 
   public ServerForm(Server server, IServerEventEmitter eventEmitter)
   {
@@ -56,11 +56,18 @@ public partial class ServerForm : Form
 
     _dmButton.Click += (s, e) =>
     {
-      if (_dmForm is not null) return;
+      if (_onlineClientsForm?.IsDisposed == false)
+      {
+        _onlineClientsForm.Focus();
+        return;
+      }
 
-      _dmForm = new ServerOnlineClientsForm(_server, _server, eventEmitter);
-      _dmForm.FormClosing += (s, e) => _dmForm = null;
-      _dmForm.Show();
+      _onlineClientsForm = new ServerOnlineClientsForm(
+        server: _server,
+        serverOperations: _server,
+        eventEmitter: _eventEmitter);
+
+      _onlineClientsForm.Show();
     };
 
     FormClosing += (s, e) => _server?.Dispose();
@@ -80,6 +87,9 @@ public partial class ServerForm : Form
     _stopServerButton.Visible = isServerActive;
     _shutdownButton.Visible = isServerActive;
     _dmButton.Visible = isServerActive;
+
+    if (serverState != ServerState.Shutdown) return;
+    _onlineClientsForm?.Close();
   }
 
   private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
