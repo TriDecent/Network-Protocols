@@ -35,6 +35,19 @@ public class ClientSideMessageProcessorTest
   }
 
   [Test]
+  public async Task PrepareOutgoingMessageAsync_ShouldSerializeMessage()
+  {
+    var message = CreateMessage(MessageType.Text, Target.All, []);
+    var expectedBytes = new byte[] { 1, 2, 3 };
+    _serializerMock.Setup(x => x.SerializeMessageToBytesAsync(message))
+      .ReturnsAsync(expectedBytes);
+
+    var result = await _cut.PrepareOutgoingMessageAsync(message);
+
+    Assert.That(result.ToArray(), Is.EqualTo(expectedBytes));
+  }
+
+  [Test]
   public async Task HandleMessageFromStream_ShouldEmitBroadcastEvent_WhenMessageTargetIsAll()
   {
     // Arrange
