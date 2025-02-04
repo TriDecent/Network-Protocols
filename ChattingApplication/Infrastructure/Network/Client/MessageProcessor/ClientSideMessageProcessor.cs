@@ -21,7 +21,7 @@ public class ClientSideMessageProcessor(
   public Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
     => _serializer.SerializeMessageToBytesAsync(message);
 
-  public async Task HandleMessageFromStreamAsync(NetworkStream stream, CancellationToken token)
+  public async Task HandleMessageFromStreamAsync(Stream stream, CancellationToken token)
   {
     var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
     while (!token.IsCancellationRequested)

@@ -25,7 +25,7 @@ public class ServerSideMessageProcessor(
     => _serializer.SerializeMessageToBytesAsync(message);
 
   public async Task HandleMessageFromStreamAsync(
-    NetworkStream stream,
+    Stream stream,
     ClientSessionInfo sender,
     CancellationToken token)
   {

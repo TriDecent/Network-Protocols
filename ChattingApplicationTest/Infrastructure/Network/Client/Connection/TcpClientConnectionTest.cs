@@ -68,7 +68,8 @@ public class TcpClientConnectionTest
   {
     var data = new Memory<byte>([1, 2, 3]);
 
-    Assert.ThrowsAsync<InvalidOperationException>(async () => await _cut.SendBytesAsync(data, CancellationToken.None));
+    Assert.ThrowsAsync<InvalidOperationException>(async () =>
+      await _cut.SendBytesAsync(data, CancellationToken.None));
 
     return Task.CompletedTask;
   }
@@ -82,9 +83,12 @@ public class TcpClientConnectionTest
 
     try
     {
-      await _cut.ConnectAsync((IPEndPoint)server.LocalEndpoint, CancellationToken.None);
+      await _cut.ConnectAsync(
+        (IPEndPoint)server.LocalEndpoint,
+        CancellationToken.None);
 
-      Assert.DoesNotThrowAsync(async () => await _cut.SendBytesAsync(data, CancellationToken.None));
+      Assert.DoesNotThrowAsync(async () =>
+        await _cut.SendBytesAsync(data, CancellationToken.None));
     }
     finally
     {
@@ -101,7 +105,9 @@ public class TcpClientConnectionTest
 
     try
     {
-      await _cut.ConnectAsync((IPEndPoint)server.LocalEndpoint, CancellationToken.None);
+      await _cut.ConnectAsync(
+        (IPEndPoint)server.LocalEndpoint, 
+        CancellationToken.None);
 
       server.Stop();
 

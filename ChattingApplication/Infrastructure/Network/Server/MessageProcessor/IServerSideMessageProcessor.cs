@@ -7,5 +7,5 @@ namespace ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
 public interface IServerSideMessageProcessor
 {
   Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message);
-  Task HandleMessageFromStreamAsync(NetworkStream stream, ClientSessionInfo sender, CancellationToken token);
+  Task HandleMessageFromStreamAsync(Stream stream, ClientSessionInfo sender, CancellationToken token);
 }
