@@ -2,7 +2,6 @@ using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Serializers;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Buffers.Binary;
-using System.Net.Sockets;
 using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
 

@@ -1,7 +1,7 @@
-using System.Net;
-using System.Net.Sockets;
 using ChattingApplication.Infrastructure.Network.Client.Connection;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Sockets;
 
 namespace ChattingApplicationTest.Infrastructure.Network.Client.Connection;
 
@@ -106,7 +106,7 @@ public class TcpClientConnectionTest
     try
     {
       await _cut.ConnectAsync(
-        (IPEndPoint)server.LocalEndpoint, 
+        (IPEndPoint)server.LocalEndpoint,
         CancellationToken.None);
 
       server.Stop();

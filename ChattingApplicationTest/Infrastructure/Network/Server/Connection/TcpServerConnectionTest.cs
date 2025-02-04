@@ -1,7 +1,7 @@
-using System.Net;
-using System.Net.Sockets;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Sockets;
 
 namespace ChattingApplicationTest.Infrastructure.Network.Server.Connection;
 

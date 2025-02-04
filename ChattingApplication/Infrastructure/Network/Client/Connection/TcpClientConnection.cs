@@ -1,5 +1,3 @@
-using ChattingApplication.Common.Enums;
-using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using System.Net;
 using System.Net.Sockets;
 using static ChattingApplication.Core.Interfaces.IClient;

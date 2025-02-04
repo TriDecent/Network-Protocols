@@ -1,13 +1,11 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
-using ChattingApplication.Infrastructure.Network.Server;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using Moq;
 using NUnit.Framework;
 using System.Net;
-using System.Net.Sockets;
 
 namespace ChattingApplicationTest.Infrastructure.Network;
 

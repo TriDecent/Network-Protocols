@@ -1,5 +1,4 @@
 using ChattingApplication.Core.Models;
-using System.Net.Sockets;
 using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Server.MessageProcessor;

@@ -1,6 +1,5 @@
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Models;
-using ChattingApplication.Infrastructure.Network.Client.Connection;
 
 namespace ChattingApplication.Core.Interfaces;
 

@@ -1,9 +1,4 @@
 
-using System.Buffers.Binary;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
@@ -11,6 +6,8 @@ using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 using Moq;
 using NUnit.Framework;
+using System.Buffers.Binary;
+using System.Text.Json;
 
 namespace ChattingApplicationTest.Infrastructure.Network.Client.MessageProcessor;
 
