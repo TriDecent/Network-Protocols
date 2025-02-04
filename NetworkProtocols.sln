@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpClient", "TcpClient\TcpC
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattingApplication", "ChattingApplication\ChattingApplication.csproj", "{E682A219-59A0-4321-B1F2-3CD63A3F3E82}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattingApplicationTest", "ChattingApplicationTest\ChattingApplicationTest.csproj", "{294DA238-D0B7-4299-BBBA-E101E01FF80E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChattingApplicationTest", "ChattingApplicationTest\ChattingApplicationTest.csproj", "{A442C13B-979E-41DF-937B-522B163B464A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +35,10 @@ Global
 		{E682A219-59A0-4321-B1F2-3CD63A3F3E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E682A219-59A0-4321-B1F2-3CD63A3F3E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E682A219-59A0-4321-B1F2-3CD63A3F3E82}.Release|Any CPU.Build.0 = Release|Any CPU
-		{294DA238-D0B7-4299-BBBA-E101E01FF80E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{294DA238-D0B7-4299-BBBA-E101E01FF80E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{294DA238-D0B7-4299-BBBA-E101E01FF80E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{294DA238-D0B7-4299-BBBA-E101E01FF80E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A442C13B-979E-41DF-937B-522B163B464A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A442C13B-979E-41DF-937B-522B163B464A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A442C13B-979E-41DF-937B-522B163B464A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A442C13B-979E-41DF-937B-522B163B464A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
