@@ -44,5 +44,10 @@ public class TcpServerConnection(TcpListener listener) : IServerConnection
   public async Task<TcpClient> AcceptClientAsync(CancellationToken token)
     => await _listener.AcceptTcpClientAsync(token);
 
-  public void Dispose() => _listener.Dispose();
+  public void Dispose()
+  {
+    _listener.Dispose();
+    _isListening = false;
+    _isRunning = false;
+  }
 }
