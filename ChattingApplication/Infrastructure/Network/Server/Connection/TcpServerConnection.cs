@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Sockets;
 using ChattingApplication.Core.Interfaces;
 
 namespace ChattingApplication.Infrastructure.Network.Server.Connection;
@@ -42,7 +41,7 @@ public class TcpServerConnection(ITcpListener listener) : IServerConnection
     _listener.Stop();
   }
 
-  public async Task<TcpClient> AcceptClientAsync(CancellationToken token)
+  public async Task<ITcpClient> AcceptClientAsync(CancellationToken token)
     => await _listener.AcceptTcpClientAsync(token);
 
   public void Dispose()

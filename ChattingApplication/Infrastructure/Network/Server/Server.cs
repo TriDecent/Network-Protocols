@@ -106,8 +106,7 @@ public class Server : IServer, IServerOperations, IDisposable
       ITcpClient client;
       try
       {
-        client = new WrapperTcpClient(
-          await _connection.AcceptClientAsync(_listeningCTS.Token));
+        client = await _connection.AcceptClientAsync(_listeningCTS.Token);
       }
       catch (OperationCanceledException)
       {

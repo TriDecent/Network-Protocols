@@ -12,8 +12,8 @@ public class WrapperTcpListener(TcpListener listener) : ITcpListener
 
   public void Start() => _listener.Start();
   public void Stop() => _listener.Stop();
-  public async Task<TcpClient> AcceptTcpClientAsync(CancellationToken token)
-    => await _listener.AcceptTcpClientAsync(token);
+  public async Task<ITcpClient> AcceptTcpClientAsync(CancellationToken token)
+    => new WrapperTcpClient(await _listener.AcceptTcpClientAsync(token));
   public void Dispose() => _listener.Dispose();
 
 }
