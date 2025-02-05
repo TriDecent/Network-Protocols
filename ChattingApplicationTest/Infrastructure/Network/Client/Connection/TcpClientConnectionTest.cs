@@ -1,6 +1,7 @@
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.Connection;
+using Moq;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Sockets;
@@ -10,139 +11,127 @@ namespace ChattingApplicationTest.Infrastructure.Network.Client.Connection;
 [TestFixture]
 public class TcpClientConnectionTest
 {
+  private Mock<ITcpClient> _tcpClientMock;
   private TcpClientConnection _cut;
-  private ITcpClient _tcpClient;
   private IPEndPoint _endPoint;
 
   [SetUp]
-  public void SetUp()
+  public void Setup()
   {
-    _tcpClient = new WrapperTcpClient(new TcpClient());
-    _cut = new TcpClientConnection(_tcpClient);
-    _endPoint = new IPEndPoint(IPAddress.Loopback, 12345);
-  }
-
-  [TearDown]
-  public void Cleanup()
-  {
-    _cut.Dispose();
+    _tcpClientMock = new Mock<ITcpClient>();
+    _cut = new TcpClientConnection(_tcpClientMock.Object);
+    _endPoint = new IPEndPoint(IPAddress.Loopback, 5000);
   }
 
   [Test]
-  public void IsConnected_WhenNotConnected_ReturnsFalse()
-    => Assert.That(_cut.IsConnected, Is.False);
+  public void IsConnected_ShouldReturnClientConnectedStatus()
+  {
+    // Arrange
+    _tcpClientMock.Setup(x => x.Connected).Returns(true);
 
+    // Act & Assert
+    Assert.That(_cut.IsConnected, Is.True);
+  }
 
   [Test]
-  public async Task ConnectAsync_WhenServerNotAvailable_ReturnsFailureResult()
+  public async Task ConnectAsync_WhenSuccessful_ReturnsSuccessResult()
   {
+    // Arrange
+    _tcpClientMock
+      .Setup(mock => mock.ConnectAsync(_endPoint, It.IsAny<CancellationToken>()))
+      .Returns(Task.CompletedTask);
+
+    // Act
     var result = await _cut.ConnectAsync(_endPoint, CancellationToken.None);
 
+    // Assert
     Assert.Multiple(() =>
     {
-      Assert.That(result.Success, Is.False);
-      Assert.That(result.ErrorMessage, Is.Not.Empty);
+      Assert.That(result.Success, Is.True);
+      Assert.That(result.ErrorMessage, Is.Null);
     });
   }
 
   [Test]
-  public Task ConnectAsync_WhenCancelled_ThrowsTaskCanceledException()
+  public async Task ConnectAsync_WhenSocketException_ReturnsFailureResult()
   {
-    using var cts = new CancellationTokenSource();
-    cts.Cancel();
+    // Arrange
+    _tcpClientMock
+      .Setup(mock => mock.ConnectAsync(_endPoint, It.IsAny<CancellationToken>()))
+      .ThrowsAsync(new SocketException((int)SocketError.ConnectionRefused));
 
-    Assert.ThrowsAsync<TaskCanceledException>(
-      async () => await _cut.ConnectAsync(_endPoint, cts.Token));
+    // Act
+    var result = await _cut.ConnectAsync(_endPoint, CancellationToken.None);
 
-    return Task.CompletedTask;
+    // Assert
+    Assert.Multiple(() =>
+    {
+      Assert.That(result.Success, Is.False);
+      Assert.That(result.ErrorMessage, Is.EqualTo("Could not connect to the server. Please try again later."));
+    });
   }
 
   [Test]
-  public void Disconnect_WhenNotConnected_DoesNotThrowException()
-    => Assert.DoesNotThrow(_cut.Disconnect);
-
-  [Test]
-  public void GetStream_WhenNotConnected_ThrowsInvalidOperationException()
-    => Assert.Throws<InvalidOperationException>(() => _cut.GetStream());
-
-  [Test]
-  public Task SendBytesAsync_WhenNotConnected_ThrowsInvalidOperationException()
+  public void Disconnect_WhenConnected_ShouldCloseAndReplaceClient()
   {
-    var data = new Memory<byte>([1, 2, 3]);
+    // Arrange
+    _tcpClientMock.Setup(mock => mock.Connected).Returns(true);
 
-    Assert.ThrowsAsync<InvalidOperationException>(async () =>
-      await _cut.SendBytesAsync(data, CancellationToken.None));
+    // Act
+    _cut.Disconnect();
 
-    return Task.CompletedTask;
+    // Assert
+    _tcpClientMock.Verify(mock => mock.Close(), Times.Once);
   }
 
   [Test]
-  public async Task SendBytesAsync_WhenConnected_SendsData()
+  public async Task SendBytesAsync_WhenConnected_ShouldWriteToStream()
   {
-    var data = new Memory<byte>([1, 2, 3]);
-    using var server = new TcpListener(IPAddress.Loopback, 0);
-    server.Start();
+    // Arrange
+    var mockStream = new Mock<Stream>();
+    var testData = new byte[] { 1, 2, 3 };
 
-    try
-    {
-      await _cut.ConnectAsync(
-        (IPEndPoint)server.LocalEndpoint,
-        CancellationToken.None);
+    _tcpClientMock.Setup(mock => mock.GetStream()).Returns(mockStream.Object);
 
-      Assert.DoesNotThrowAsync(async () =>
-        await _cut.SendBytesAsync(data, CancellationToken.None));
-    }
-    finally
-    {
-      server.Stop();
-    }
+    // Act
+    await _cut.SendBytesAsync(testData, CancellationToken.None);
+
+    // Assert
+    mockStream.Verify(mock => mock.WriteAsync(
+      It.Is<ReadOnlyMemory<byte>>(
+        @byte => @byte.ToArray().SequenceEqual(testData)),
+        It.IsAny<CancellationToken>()),
+      Times.Once);
   }
 
   [Test]
-  public async Task SendBytesAsync_ConnectionInterrupted_ThrowsIOException()
+  public void SendBytesAsync_WhenIOException_ShouldDisconnectAndRethrow()
   {
-    var data = new Memory<byte>([1, 2, 3]);
-    using var server = new TcpListener(IPAddress.Loopback, 0);
-    server.Start();
+    // Arrange
+    var mockStream = new Mock<Stream>();
+    mockStream
+      .Setup(mock => mock.WriteAsync(
+        It.IsAny<ReadOnlyMemory<byte>>(),
+        It.IsAny<CancellationToken>()))
+      .ThrowsAsync(new IOException());
 
-    try
-    {
-      await _cut.ConnectAsync(
-        (IPEndPoint)server.LocalEndpoint,
-        CancellationToken.None);
+    _tcpClientMock.Setup(mock => mock.GetStream()).Returns(mockStream.Object);
+    _tcpClientMock.Setup(mock => mock.Connected).Returns(true);
 
-      server.Stop();
+    // Act & Assert
+    var ex = Assert.ThrowsAsync<IOException>(async () =>
+      await _cut.SendBytesAsync(new byte[] { 1, 2, 3 }, CancellationToken.None));
 
-      Assert.ThrowsAsync<IOException>(async () =>
-        await _cut.SendBytesAsync(data, CancellationToken.None));
-    }
-    finally
-    {
-      server.Stop();
-    }
+    _tcpClientMock.Verify(mock => mock.Close(), Times.Once);
   }
 
-
   [Test]
-  public async Task SendBytesAsync_ConnectionCanceled_ThrowsTaskCanceledException()
+  public void Dispose_ShouldDisposeClient()
   {
-    var data = new Memory<byte>([1, 2, 3]);
-    using var server = new TcpListener(IPAddress.Loopback, 0);
-    using var cts = new CancellationTokenSource();
-    server.Start();
+    // Act
+    _cut.Dispose();
 
-    try
-    {
-      await _cut.ConnectAsync((IPEndPoint)server.LocalEndpoint, cts.Token);
-
-      cts.Cancel();
-
-      Assert.ThrowsAsync<TaskCanceledException>(async () =>
-        await _cut.SendBytesAsync(data, cts.Token));
-    }
-    finally
-    {
-      server.Stop();
-    }
+    // Assert
+    _tcpClientMock.Verify(mock => mock.Dispose(), Times.Once);
   }
 }
