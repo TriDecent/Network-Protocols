@@ -1,3 +1,4 @@
+using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
 using ChattingApplication.Infrastructure.Network.Client;
@@ -55,7 +56,7 @@ namespace ChattingApplication
       var clientForm3 = new ClientForm(client3, clientEventEmitter3);
 
       var ipEndPoint = new IPEndPoint(IPAddress.Parse("192.168.2.215"), 1211);
-      using var tcpListener = new TcpListener(ipEndPoint);
+      using var tcpListener = new WrapperTcpListener(new TcpListener(ipEndPoint));
       using var tcpServerConnection = new TcpServerConnection(tcpListener);
       var server = new Server(tcpServerConnection, serializer, serverEventEmitter);  // not use using, let form handle life cycle
 

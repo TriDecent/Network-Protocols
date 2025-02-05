@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using static ChattingApplication.Core.Interfaces.IClient;
 

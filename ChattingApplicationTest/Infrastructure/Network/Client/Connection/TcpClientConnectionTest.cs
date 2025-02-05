@@ -1,3 +1,4 @@
+using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.Connection;
 using NUnit.Framework;

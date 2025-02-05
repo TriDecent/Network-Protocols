@@ -1,3 +1,5 @@
+using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
 using NUnit.Framework;
 using System.Net;
@@ -8,14 +10,14 @@ namespace ChattingApplicationTest.Infrastructure.Network.Server.Connection;
 [TestFixture]
 public class TcpServerConnectionTest
 {
-  private TcpListener _listener;
+  private ITcpListener _listener;
   private TcpServerConnection _cut;
   private readonly IPEndPoint _endpoint = new(IPAddress.Loopback, 5000);
 
   [SetUp]
   public void Setup()
   {
-    _listener = new TcpListener(_endpoint);
+    _listener = new WrapperTcpListener(new TcpListener(_endpoint));
     _cut = new TcpServerConnection(_listener);
   }
 

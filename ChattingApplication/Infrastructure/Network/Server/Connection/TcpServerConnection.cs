@@ -1,9 +1,10 @@
 using System.Net;
 using System.Net.Sockets;
+using ChattingApplication.Core.Interfaces;
 
 namespace ChattingApplication.Infrastructure.Network.Server.Connection;
 
-public class TcpServerConnection(TcpListener listener) : IServerConnection
+public class TcpServerConnection(ITcpListener listener) : IServerConnection
 {
   public bool IsListening => _isListening;
   public bool IsRunning => _isRunning;
@@ -11,7 +12,7 @@ public class TcpServerConnection(TcpListener listener) : IServerConnection
 
   private bool _isListening;
   private bool _isRunning;
-  private readonly TcpListener _listener = listener;
+  private readonly ITcpListener _listener = listener;
 
   public void StartListening()
   {
