@@ -1,3 +1,4 @@
+using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.Connection;
 using NUnit.Framework;
 using System.Net;
@@ -9,13 +10,13 @@ namespace ChattingApplicationTest.Infrastructure.Network.Client.Connection;
 public class TcpClientConnectionTest
 {
   private TcpClientConnection _cut;
-  private TcpClient _tcpClient;
+  private ITcpClient _tcpClient;
   private IPEndPoint _endPoint;
 
   [SetUp]
   public void SetUp()
   {
-    _tcpClient = new TcpClient();
+    _tcpClient = new WrapperTcpClient(new TcpClient());
     _cut = new TcpClientConnection(_tcpClient);
     _endPoint = new IPEndPoint(IPAddress.Loopback, 12345);
   }

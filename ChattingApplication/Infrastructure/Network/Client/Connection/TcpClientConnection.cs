@@ -1,13 +1,14 @@
 using System.Net;
 using System.Net.Sockets;
+using ChattingApplication.Core.Models;
 using static ChattingApplication.Core.Interfaces.IClient;
 
 namespace ChattingApplication.Infrastructure.Network.Client.Connection;
 
 public class TcpClientConnection(
-  TcpClient client) : IClientConnection
+  ITcpClient client) : IClientConnection
 {
-  private TcpClient _client = client;
+  private ITcpClient _client = client;
 
   public bool IsConnected => _client.Connected;
 
@@ -34,7 +35,7 @@ public class TcpClientConnection(
     if (!IsConnected) return;
 
     _client.Close();
-    _client = new TcpClient();
+    _client = new WrapperTcpClient(new TcpClient());
   }
 
   public async Task SendBytesAsync(ReadOnlyMemory<byte> data, CancellationToken token)
@@ -46,12 +47,12 @@ public class TcpClientConnection(
     }
     catch (IOException) // Connection to Server was lost
     {
-      _client = new TcpClient();
+      Disconnect();
       throw;
     }
   }
 
-  public NetworkStream GetStream() => _client.GetStream();
+  public Stream GetStream() => _client.GetStream();
 
   public void Dispose() => _client.Dispose();
 
