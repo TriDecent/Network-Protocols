@@ -1,5 +1,5 @@
 using System.Net;
-using System.Net.Sockets;
+using ChattingApplication.Core.Interfaces;
 
 namespace ChattingApplication.Infrastructure.Network.Server.Connection;
 
@@ -12,5 +12,5 @@ public interface IServerConnection : IDisposable
   void StartListening();
   void StopListening();
   void ShutDown();
-  Task<TcpClient> AcceptClientAsync(CancellationToken token);
+  Task<ITcpClient> AcceptClientAsync(CancellationToken token);
 }
