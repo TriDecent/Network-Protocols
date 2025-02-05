@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace ChattingApplication.Core.Models;
+namespace ChattingApplication.Core.Interfaces;
 
 public interface ITcpClient : IDisposable
 {
