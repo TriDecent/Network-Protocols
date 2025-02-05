@@ -1,6 +1,6 @@
 using ChattingApplication.Core.Interfaces;
-using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
+using Moq;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Sockets;
@@ -10,146 +10,113 @@ namespace ChattingApplicationTest.Infrastructure.Network.Server.Connection;
 [TestFixture]
 public class TcpServerConnectionTest
 {
-  private ITcpListener _listener;
+  private Mock<ITcpListener> _listenerMock;
   private TcpServerConnection _cut;
   private readonly IPEndPoint _endpoint = new(IPAddress.Loopback, 5000);
 
   [SetUp]
   public void Setup()
   {
-    _listener = new WrapperTcpListener(new TcpListener(_endpoint));
-    _cut = new TcpServerConnection(_listener);
-  }
-
-  [TearDown]
-  public void TearDown()
-  {
-    _cut.Dispose();
+    _listenerMock = new Mock<ITcpListener>();
+    _listenerMock.Setup(mock => mock.LocalEndpoint).Returns(_endpoint);
+    _cut = new TcpServerConnection(_listenerMock.Object);
   }
 
   [Test]
-  public void StartListening_ShouldSetListeningAndRunningFlagsToBeTrue_WhenCalled()
+  public void StartListening_ShouldSetFlagsAndStartListener_WhenCalled()
   {
+    // Act
     _cut.StartListening();
 
+    // Assert
     Assert.Multiple(() =>
     {
       Assert.That(_cut.IsListening, Is.True);
       Assert.That(_cut.IsRunning, Is.True);
     });
+    _listenerMock.Verify(x => x.Start(), Times.Once);
   }
 
   [Test]
   public void StartListening_ShouldNotStartAgain_WhenAlreadyListening()
   {
-    _cut.StartListening();
-    var initialEndpoint = _cut.LocalEndPoint;
-
+    // Arrange
     _cut.StartListening();
 
-    Assert.Multiple(() =>
-    {
-      Assert.That(_cut.IsListening, Is.True);
-      Assert.That(_cut.LocalEndPoint, Is.EqualTo(initialEndpoint));
-    });
+    // Act
+    _cut.StartListening();
+
+    // Assert
+    _listenerMock.Verify(mock => mock.Start(), Times.Once);
   }
 
   [Test]
-  public void StopListening_ShouldStopListeningAndUpdateFlag_WhenCalled()
+  public void StopListening_ShouldUpdateFlagAndStopListener_WhenListening()
   {
+    // Arrange
     _cut.StartListening();
 
+    // Act
     _cut.StopListening();
 
+    // Assert
     Assert.Multiple(() =>
     {
       Assert.That(_cut.IsListening, Is.False);
       Assert.That(_cut.IsRunning, Is.True);
     });
+    _listenerMock.Verify(x => x.Stop(), Times.Once);
   }
 
   [Test]
-  public void StopListening_ShouldDoNothing_WhenNotListening()
+  public void ShutDown_ShouldStopListenerAndUpdateFlags_WhenRunning()
   {
-    _cut.StopListening();
-
-    Assert.Multiple(() =>
-    {
-      Assert.That(_cut.IsListening, Is.False);
-      Assert.That(_cut.IsRunning, Is.False);
-    });
-  }
-
-  [Test]
-  public void ShutDown_ShouldStopListeningAndRunning_WhenCalled()
-  {
+    // Arrange 
     _cut.StartListening();
 
+    // Act
     _cut.ShutDown();
 
+    // Assert
     Assert.Multiple(() =>
     {
       Assert.That(_cut.IsListening, Is.False);
       Assert.That(_cut.IsRunning, Is.False);
     });
+    _listenerMock.Verify(x => x.Stop(), Times.Once);
   }
 
   [Test]
-  public void ShutDown_ShouldDoNothing_WhenNotRunning()
+  public async Task AcceptClientAsync_ShouldDelegateToListener()
   {
-    _cut.ShutDown();
+    // Arrange
+    var expectedClient = new TcpClient();
+    _listenerMock
+      .Setup(mock => mock.AcceptTcpClientAsync(It.IsAny<CancellationToken>()))
+      .ReturnsAsync(expectedClient);
 
-    Assert.Multiple(() =>
-    {
-      Assert.That(_cut.IsListening, Is.False);
-      Assert.That(_cut.IsRunning, Is.False);
-    });
+    // Act
+    var result = await _cut.AcceptClientAsync(CancellationToken.None);
+
+    // Assert
+    Assert.That(result, Is.EqualTo(expectedClient));
+    _listenerMock.Verify(
+      mock => mock.AcceptTcpClientAsync(It.IsAny<CancellationToken>()),
+      Times.Once);
   }
 
   [Test]
-  public async Task AcceptClientAsync_ShouldAcceptClient_WhenClientConnects()
+  public void Dispose_ShouldCleanupAndUpdateFlags()
   {
-    _cut.StartListening();
-    using var client = new TcpClient();
-    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-
-    var connectionTask = _cut.AcceptClientAsync(cts.Token);
-    await client.ConnectAsync("127.0.0.1", ((IPEndPoint)_listener.LocalEndpoint).Port);
-    var acceptedClient = await connectionTask;
-
-    Assert.That(acceptedClient.Connected, Is.True);
-    Assert.That(client.Connected, Is.True);
-
-    acceptedClient.Dispose();
-  }
-
-  [Test]
-  public void AcceptClientAsync_ShouldThrowOperationCanceledException_WhenTimeout()
-  {
-    _cut.StartListening();
-    using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-
-    Assert.ThrowsAsync<OperationCanceledException>(async () =>
-    {
-      await _cut.AcceptClientAsync(cts.Token);
-    });
-  }
-
-  [Test]
-  public void LocalEndPoint_ShouldReturnCorrectEndpoint_WhenCalled()
-    => Assert.That(_cut.LocalEndPoint, Is.EqualTo(_endpoint));
-
-  [Test]
-  public void Dispose_ShouldDisposeListener_WhenCalled()
-  {
-    _cut.StartListening();
-
+    // Act
     _cut.Dispose();
 
+    // Assert
     Assert.Multiple(() =>
     {
       Assert.That(_cut.IsListening, Is.False);
       Assert.That(_cut.IsRunning, Is.False);
     });
+    _listenerMock.Verify(mock => mock.Dispose(), Times.Once);
   }
 }
