@@ -1,4 +1,5 @@
 using ChattingApplication.Core.Interfaces;
+using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
 using Moq;
 using NUnit.Framework;
@@ -90,7 +91,7 @@ public class TcpServerConnectionTest
   public async Task AcceptClientAsync_ShouldDelegateToListener()
   {
     // Arrange
-    var expectedClient = new TcpClient();
+    var expectedClient = new WrapperTcpClient(new TcpClient());
     _listenerMock
       .Setup(mock => mock.AcceptTcpClientAsync(It.IsAny<CancellationToken>()))
       .ReturnsAsync(expectedClient);

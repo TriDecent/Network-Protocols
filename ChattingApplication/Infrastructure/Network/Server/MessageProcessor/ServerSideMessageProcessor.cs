@@ -29,10 +29,11 @@ public class ServerSideMessageProcessor(
     CancellationToken token)
   {
     var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-    while (!token.IsCancellationRequested)
+    try
     {
-      try
+      while (!token.IsCancellationRequested)
       {
+
         await stream.ReadExactlyAsync(buffer.AsMemory(), token);
 
         var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
@@ -44,10 +45,10 @@ public class ServerSideMessageProcessor(
 
         await ProcessIncomingMessageAsync(message, sender);
       }
-      catch (EndOfStreamException)
-      {
-        throw;
-      }
+    }
+    catch (EndOfStreamException)
+    {
+      throw;
     }
   }
 
