@@ -1,5 +1,3 @@
-using System.Net.Sockets;
-
 namespace ChattingApplication.Core.Models;
 
-public record ClientSessionInfo(ClientInfo Info, TcpClient Client);
+public record ClientSessionInfo(ClientInfo Info, ITcpClient Client);

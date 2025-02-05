@@ -103,10 +103,11 @@ public class Server : IServer, IServerOperations, IDisposable
   {
     while (!_listeningCTS.Token.IsCancellationRequested)
     {
-      TcpClient client;
+      ITcpClient client;
       try
       {
-        client = await _connection.AcceptClientAsync(_listeningCTS.Token);
+        client = new WrapperTcpClient(
+          await _connection.AcceptClientAsync(_listeningCTS.Token));
       }
       catch (OperationCanceledException)
       {
@@ -216,14 +217,14 @@ public class Server : IServer, IServerOperations, IDisposable
     }
   }
 
-  private async Task HandleClientAsync(TcpClient client)
+  private async Task HandleClientAsync(ITcpClient client)
   {
     var clientInfo = await CreateClientSessionInfoFromClient(client);
     AddClient(clientInfo);
     await HandleClientMessagesAsync(clientInfo);
   }
 
-  private async Task<ClientSessionInfo> CreateClientSessionInfoFromClient(TcpClient client)
+  private async Task<ClientSessionInfo> CreateClientSessionInfoFromClient(ITcpClient client)
   {
     var message = await ReceiveSingleMessageAsync(client.GetStream());
     var clientInfo = message.Sender;
@@ -233,7 +234,7 @@ public class Server : IServer, IServerOperations, IDisposable
     return new ClientSessionInfo(newClientInfo, client);
   }
 
-  private async Task<Message> ReceiveSingleMessageAsync(NetworkStream stream)
+  private async Task<Message> ReceiveSingleMessageAsync(Stream stream)
   {
     var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
 
