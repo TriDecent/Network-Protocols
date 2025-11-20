@@ -7,4 +7,5 @@ public interface IServerSideMessageProcessor
 {
   Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message);
   Task HandleMessageFromStreamAsync(Stream stream, ClientSessionInfo sender, CancellationToken token);
+  Task<Message> ReadAMessageFromStreamAsync(Stream stream, CancellationToken token);
 }

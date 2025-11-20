@@ -1,3 +1,8 @@
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
@@ -6,18 +11,12 @@ using ChattingApplication.Infrastructure.Network.Server.Connection;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
 using ChattingApplication.Infrastructure.Network.Server.Operations;
-using System.Buffers.Binary;
-using System.Collections.Concurrent;
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Server;
 
 public class Server : IServer, IServerOperations, IDisposable
 {
-  private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
   private readonly IServerConnection _connection;
   private readonly IMessageSerializer _serializer;
@@ -224,28 +223,12 @@ public class Server : IServer, IServerOperations, IDisposable
 
   private async Task<ClientSessionInfo> CreateClientSessionInfoFromClient(ITcpClient client)
   {
-    var message = await ReceiveSingleMessageAsync(client.GetStream());
+    var message = await _messageProcessor.ReadAMessageFromStreamAsync(client.GetStream(), _shutdownCTS.Token);
     var clientInfo = message.Sender;
     var clientId = Guid.NewGuid().ToString();
     var newClientInfo = clientInfo with { Id = clientId };
 
     return new ClientSessionInfo(newClientInfo, client);
-  }
-
-  private async Task<Message> ReceiveSingleMessageAsync(Stream stream)
-  {
-    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
-
-    await stream.ReadExactlyAsync(buffer.AsMemory(), _shutdownCTS.Token);
-
-    var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
-    var contentBytes = new byte[contentLength];
-
-    await stream.ReadExactlyAsync(contentBytes.AsMemory(), _shutdownCTS.Token);
-
-    var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
-
-    return message;
   }
 
   private async Task HandleClientMessagesAsync(ClientSessionInfo client)
