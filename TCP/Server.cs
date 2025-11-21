@@ -1,5 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace TCP.Server;
 
@@ -29,7 +31,7 @@ public class Server(TcpListener listener)
       {
         foreach (var client in _clients)
         {
-          SendMessageToClient(client, message);
+          _ = SendMessageToClient(client, message);
         }
       }
     }
@@ -46,15 +48,23 @@ public class Server(TcpListener listener)
         _clients.Add(client);
       }
 
-      HandleClient(client);
+      _ = HandleClientAsync(client);
     }
   }
 
-  private static void HandleClient(TcpClient client) => _ = ProcessIncomingDataFromAsync(client);
+  private async Task HandleClientAsync(TcpClient client)
+  {
+    await ProcessIncomingDataFromAsync(client);
+
+    lock (_clients)
+    {
+      _clients.Remove(client);
+    }
+  }
 
   private static async Task ProcessIncomingDataFromAsync(TcpClient client)
   {
-    var stream = client.GetStream();
+    using var stream = client.GetStream();
 
     var buffer = new byte[1024];
     int bytesReadCount;
@@ -66,11 +76,11 @@ public class Server(TcpListener listener)
     }
   }
 
-  private static void SendMessageToClient(TcpClient client, string message)
+  private static async Task SendMessageToClient(TcpClient client, string message)
   {
     var bytes = Encoding.UTF8.GetBytes(message + Environment.NewLine);
     var stream = client.GetStream();
-    stream.Write(bytes);
+    await stream.WriteAsync(bytes);
   }
 
   private static string GetStringFromServer() => Console.ReadLine()!;

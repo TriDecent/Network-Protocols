@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
-using TCP.Server;
 using TCP.Client;
+using TCP.Server;
 
 // Client
 // using var tcpClient = new TcpClient("192.168.84.128", 1211);
