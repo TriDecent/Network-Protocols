@@ -1,8 +1,8 @@
+using System.Buffers.Binary;
+using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Serializers;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
-using System.Buffers.Binary;
-using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
@@ -12,28 +12,28 @@ public class ClientSideMessageProcessor(
   IClientEventEmitter eventEmitter,
   Action<string> updateClientId) : IClientSideMessageProcessor
 {
-  private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
+  private const int LENGTH_PREFIX_SIZE = sizeof(int);
   private readonly IMessageSerializer _serializer = serializer;
   private readonly IClientEventEmitter _eventEmitter = eventEmitter;
   private readonly Action<string> _updateClientId = updateClientId;
 
-  public Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
-    => _serializer.SerializeMessageToBytesAsync(message);
+  public async Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
+  {
+    var jsonBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    int bodyLength = jsonBytes.Length;
+    var finalPacket = new byte[LENGTH_PREFIX_SIZE + bodyLength];
+    BinaryPrimitives.WriteInt32BigEndian(finalPacket.AsSpan(0, LENGTH_PREFIX_SIZE), bodyLength);
+    jsonBytes.Span.CopyTo(finalPacket.AsSpan(LENGTH_PREFIX_SIZE));
+    return finalPacket;
+  }
 
   public async Task HandleMessageFromStreamAsync(Stream stream, CancellationToken token)
   {
-    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
     while (!token.IsCancellationRequested)
     {
       try
       {
-        await stream.ReadExactlyAsync(buffer.AsMemory(), token);
-        var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
-        var contentBytes = new byte[contentLength];
-
-        await stream.ReadExactlyAsync(contentBytes.AsMemory(), token);
-        var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
-
+        var message = await ReadAMessageFromStreamAsync(stream, token);
         ProcessMessage(message);
       }
       catch (EndOfStreamException)
@@ -41,6 +41,20 @@ public class ClientSideMessageProcessor(
         throw;
       }
     }
+  }
+
+  private static async Task<Message> ReadAMessageFromStreamAsync(Stream stream, CancellationToken token)
+  {
+    var lengthBuffer = new byte[LENGTH_PREFIX_SIZE];
+
+    await stream.ReadExactlyAsync(lengthBuffer.AsMemory(), token);
+    var contentLength = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
+    var contentBytes = new byte[contentLength];
+
+    await stream.ReadExactlyAsync(contentBytes.AsMemory(), token);
+    var message = JsonSerializer.Deserialize<Message>(contentBytes)!;
+
+    return message;
   }
 
   private void ProcessMessage(Message message)

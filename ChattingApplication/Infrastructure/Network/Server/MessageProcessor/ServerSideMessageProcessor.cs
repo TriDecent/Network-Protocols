@@ -14,14 +14,27 @@ public class ServerSideMessageProcessor(
   IServerEventEmitter eventEmitter,
   IServerOperations clientOps) : IServerSideMessageProcessor
 {
-  private const int MESSAGE_CONTENT_SIZE_PREFIX_LENGTH = sizeof(int);
+  private const int LENGTH_PREFIX_SIZE = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
+
   private readonly IMessageSerializer _serializer = serializer;
   private readonly IServerEventEmitter _eventEmitter = eventEmitter;
   private readonly IServerOperations _clientOps = clientOps;
 
-  public Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
-    => _serializer.SerializeMessageToBytesAsync(message);
+
+  public async Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
+  {
+    var jsonBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    int bodyLength = jsonBytes.Length;
+
+    var finalPacket = new byte[LENGTH_PREFIX_SIZE + bodyLength];
+
+    BinaryPrimitives.WriteInt32BigEndian(finalPacket.AsSpan(0, LENGTH_PREFIX_SIZE), bodyLength);
+
+    jsonBytes.Span.CopyTo(finalPacket.AsSpan(LENGTH_PREFIX_SIZE));
+
+    return finalPacket;
+  }
 
   public async Task HandleMessageFromStreamAsync(
     Stream stream,
@@ -33,7 +46,6 @@ public class ServerSideMessageProcessor(
       while (!token.IsCancellationRequested)
       {
         var message = await ReadAMessageFromStreamAsync(stream, token);
-
         await ProcessIncomingMessageAsync(message, sender);
       }
     }
@@ -45,13 +57,12 @@ public class ServerSideMessageProcessor(
 
   public async Task<Message> ReadAMessageFromStreamAsync(Stream stream, CancellationToken token)
   {
-    var buffer = new byte[MESSAGE_CONTENT_SIZE_PREFIX_LENGTH];
+    var lengthBuffer = new byte[LENGTH_PREFIX_SIZE];
 
-    await stream.ReadExactlyAsync(buffer.AsMemory(), token);
+    await stream.ReadExactlyAsync(lengthBuffer.AsMemory(), token);
+    var contentLength = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer);
 
-    var contentLength = BinaryPrimitives.ReadInt32BigEndian(buffer);
     var contentBytes = new byte[contentLength];
-
     await stream.ReadExactlyAsync(contentBytes.AsMemory(), token);
 
     return JsonSerializer.Deserialize<Message>(contentBytes)!;
