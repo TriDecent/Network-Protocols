@@ -14,12 +14,15 @@ using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication.Infrastructure.Network.Server;
 
-public class Server : IServer, IServerOperations, IDisposable
+public class Server(
+  IServerConnection connection,
+  IServerEventEmitter eventEmitter,
+  IServerSideMessageProcessor messageProcessor) : IServer, IServerOperations, IDisposable
 {
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
-  private readonly IServerConnection _connection;
-  private readonly IServerEventEmitter _eventEmitter;
-  private readonly IServerSideMessageProcessor _messageProcessor;
+  private readonly IServerConnection _connection = connection;
+  private readonly IServerEventEmitter _eventEmitter = eventEmitter;
+  private readonly IServerSideMessageProcessor _messageProcessor = messageProcessor;
   private CancellationTokenSource _listeningCTS = new();
   private CancellationTokenSource _shutdownCTS = new();
   private readonly List<ClientSessionInfo> _clients = [];
@@ -37,20 +40,6 @@ public class Server : IServer, IServerOperations, IDisposable
         return [.. _clients];
       }
     }
-  }
-
-  public Server(
-    IServerConnection connection,
-    IMessageSerializer serializer,
-    IServerEventEmitter eventEmitter)
-  {
-    _connection = connection;
-    _eventEmitter = eventEmitter;
-
-    _messageProcessor = new ServerSideMessageProcessor(
-      serializer,
-      eventEmitter,
-      this);
   }
 
   public void StartListeningForConnections()

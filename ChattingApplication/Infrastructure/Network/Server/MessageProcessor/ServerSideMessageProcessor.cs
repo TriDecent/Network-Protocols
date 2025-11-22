@@ -11,16 +11,20 @@ namespace ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
 
 public class ServerSideMessageProcessor(
   IMessageSerializer serializer,
-  IServerEventEmitter eventEmitter,
-  IServerOperations clientOps) : IServerSideMessageProcessor
+  IServerEventEmitter eventEmitter
+) : IServerSideMessageProcessor
 {
   private const int LENGTH_PREFIX_SIZE = sizeof(int);
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
 
   private readonly IMessageSerializer _serializer = serializer;
   private readonly IServerEventEmitter _eventEmitter = eventEmitter;
-  private readonly IServerOperations _clientOps = clientOps;
+  private IServerOperations? _serverOps;
 
+  public void RegisterServerOperations(IServerOperations serverOperations)
+  {
+    _serverOps = serverOperations;
+  }
 
   public async Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
   {
@@ -70,14 +74,17 @@ public class ServerSideMessageProcessor(
 
   private async Task ProcessIncomingMessageAsync(Message message, ClientSessionInfo sender)
   {
+    if (_serverOps is null)
+      throw new InvalidOperationException("ServerOperations not set in Processor!");
+
     switch (message.Request, message.Target)
     {
       case (MessageRequest.GetClientsInfo, Target.Server):
-        await _clientOps.SendClientsInfoToClientAsync(sender);
+        await _serverOps.SendClientsInfoToClientAsync(sender);
         break;
 
       case (MessageRequest.GetCreationUserId, Target.Server):
-        await _clientOps.SendCreationIdToSessionClientAsync(sender);
+        await _serverOps.SendCreationIdToSessionClientAsync(sender);
         break;
 
       case (_, Target.Individual) when message.Recipient is not null:
@@ -87,16 +94,16 @@ public class ServerSideMessageProcessor(
           break;
         }
 
-        var recipient = _clientOps.FindRecipient(message.Recipient.Value);
+        var recipient = _serverOps.FindRecipient(message.Recipient.Value);
         if (recipient != null)
         {
-          await _clientOps.ForwardMessageToClientAsync(recipient, message);
+          await _serverOps.ForwardMessageToClientAsync(recipient, message);
         }
         break;
 
       default:
         _eventEmitter.EmitReceivedBroadcastMessage(message);
-        await _clientOps.BroadcastMessageToClientsExceptAsync(message, sender);
+        await _serverOps.BroadcastMessageToClientsExceptAsync(message, sender);
         break;
     }
   }
