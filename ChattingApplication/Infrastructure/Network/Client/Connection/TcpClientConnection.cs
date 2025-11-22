@@ -13,6 +13,8 @@ public class TcpClientConnection(
 
   public bool IsConnected => _client.Connected;
 
+  public  ITcpClient TcpClient => _client;
+
   public async Task<ConnectionResult> ConnectAsync(
     IPEndPoint endpoint, CancellationToken token)
   {
