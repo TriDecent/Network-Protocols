@@ -1,16 +1,17 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
 using ChattingApplication.Infrastructure.Network.Server.Connection;
 using ChattingApplication.Infrastructure.Network.Server.EventEmitter;
+using ChattingApplication.Infrastructure.Network.Server.MessageProcessor;
 using Moq;
 using NUnit.Framework;
-using System.Buffers.Binary;
-using System.Net;
-using System.Text.Json;
 
-namespace ChattingApplicationTest.Infrastructure.Network;
+namespace ChattingApplicationTest.Infrastructure.Network.Server;
 
 [TestFixture]
 public class ServerTest
@@ -18,8 +19,8 @@ public class ServerTest
   private Mock<IServerConnection> _connectionMock;
   private Mock<IMessageSerializer> _serializerMock;
   private Mock<IServerEventEmitter> _eventEmitterMock;
+  private Mock<IServerSideMessageProcessor> _messageProcessorMock;
   private ChattingApplication.Infrastructure.Network.Server.Server _cut;
-
 
   [SetUp]
   public void Setup()
@@ -27,23 +28,21 @@ public class ServerTest
     _connectionMock = new Mock<IServerConnection>();
     _serializerMock = new Mock<IMessageSerializer>();
     _eventEmitterMock = new Mock<IServerEventEmitter>();
+    _messageProcessorMock = new Mock<IServerSideMessageProcessor>();
 
     _cut = new ChattingApplication.Infrastructure.Network.Server.Server(
       _connectionMock.Object,
-      _serializerMock.Object,
-      _eventEmitterMock.Object);
+      _eventEmitterMock.Object,
+      _messageProcessorMock.Object);
   }
 
   [Test]
   public void StartListeningForConnections_ShouldUpdateState_WhenStarting()
   {
-    // Arrange
     _connectionMock.Setup(x => x.IsListening).Returns(false);
 
-    // Act
     _cut.StartListeningForConnections();
 
-    // Assert
     _connectionMock.Verify(x => x.StartListening(), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.Starting), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.Listening), Times.Once);
@@ -52,13 +51,10 @@ public class ServerTest
   [Test]
   public void StopListeningForConnections_ShouldUpdateState_WhenStopping()
   {
-    // Arrange
     _connectionMock.Setup(x => x.IsListening).Returns(true);
 
-    // Act
     _cut.StopListeningForConnections();
 
-    // Assert
     _connectionMock.Verify(x => x.StopListening(), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.Stopping), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.Stopped), Times.Once);
@@ -67,100 +63,17 @@ public class ServerTest
   [Test]
   public void ShutdownAllConnections_ShouldUpdateState_WhenShuttingDown()
   {
-    // Arrange
     _connectionMock.Setup(x => x.IsRunning).Returns(true);
 
-    // Act
     _cut.ShutdownAllConnections();
 
-    // Assert
     _connectionMock.Verify(x => x.ShutDown(), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.ShuttingDown), Times.Once);
     _eventEmitterMock.Verify(x => x.EmitChangedState(ServerState.Shutdown), Times.Once);
   }
 
-  // Unresolved problem: 
-  // Keep getting stuck at _cut.HandleIncomingConnectionsAsync
-  // especially in HandleClientAsync though every inner task has already completed
   [Test]
-  public async Task HandleIncomingConnections_ShouldHandleClientConnectionFlow()
-  {
-    // // Arrange
-    // var mockClient = new Mock<ITcpClient>();
-    // var clientInfo = new ClientInfo("", "Test Client");
-    // var acceptCount = 0;
-
-    // // Setup mock to return new stream for each GetStream() call
-    // mockClient.Setup(x => x.GetStream()).Returns(() =>
-    // {
-    //   var newStream = new MemoryStream();
-    //   // Write messages to new stream
-    //   WriteMessageToStream(newStream, new Message(
-    //       clientInfo,
-    //       Array.Empty<byte>(),
-    //       MessageType.Any,
-    //       Target.Server,
-    //       MessageRequest.None)).Wait();
-
-    //   WriteMessageToStream(newStream, new Message(
-    //       clientInfo,
-    //       Array.Empty<byte>(),
-    //       MessageType.Any,
-    //       Target.Server,
-    //       MessageRequest.GetCreationUserId)).Wait();
-
-    //   newStream.Position = 0;
-    //   return newStream;
-    // });
-
-    // // Only accept one client
-    // _connectionMock
-    //     .Setup(x => x.AcceptClientAsync(It.IsAny<CancellationToken>()))
-    //     .ReturnsAsync(() =>
-    //     {
-    //       if (acceptCount++ == 0)
-    //         return mockClient.Object;
-
-    //       // Delay subsequent accepts
-    //       return Task.Delay(-1).ContinueWith(_ => mockClient.Object).Result;
-    //     });
-
-    // // Act
-    // var connectionTask = _cut.HandleIncomingConnectionsAsync();
-    // await Task.Delay(100);
-    // _cut.StopListeningForConnections();
-    // await connectionTask;
-
-    // // Assert
-    // Assert.Multiple(() =>
-    // {
-    //   Assert.That(_cut.ClientsInfo, Is.Not.Empty, "Should have accepted client");
-    //   Assert.That(_cut.ClientsInfo[0].Info.Name, Is.EqualTo(clientInfo.Name));
-    //   Assert.That(_cut.ClientsInfo[0].Info.Id, Is.Not.Empty, "Should have assigned client ID");
-    // });
-
-    // _eventEmitterMock.Verify(
-    //     x => x.EmitConnectedClient(It.Is<ClientSessionInfo>(c =>
-    //         c.Info.Name == clientInfo.Name)),
-    //     Times.Once);
-
-    // _eventEmitterMock.Verify(
-    //     x => x.EmitChangedClientsCount(1),
-    //     Times.Once);
-  }
-
-  private static async Task WriteMessageToStream(MemoryStream stream, Message message)
-  {
-    var messageBytes = JsonSerializer.SerializeToUtf8Bytes(message);
-    var lengthBytes = new byte[4];
-    BinaryPrimitives.WriteInt32BigEndian(lengthBytes, messageBytes.Length);
-    await stream.WriteAsync(lengthBytes);
-    await stream.WriteAsync(messageBytes);
-  }
-
-
-  [Test]
-  public async Task BroadcastMessageToAllClients_ShouldSerializeAndBroadcastMessage()
+  public async Task BroadcastMessageToAllClientsAsync_ShouldCallPrepareOutgoingMessageAndBroadcast()
   {
     var message = new Message(
       new ClientInfo("1", "Test"),
@@ -169,23 +82,19 @@ public class ServerTest
       Target.All,
       MessageRequest.None);
 
-    var serializedBytes = new byte[] { 1, 2, 3 };
-    _serializerMock
-      .Setup(mock => mock.SerializeMessageToBytesAsync(message))
-      .ReturnsAsync(serializedBytes);
+    var packet = new byte[] { 1, 2, 3 };
+    _messageProcessorMock.Setup(x => x.PrepareOutgoingMessageAsync(message)).ReturnsAsync(packet);
 
     await _cut.BroadcastMessageToAllClientsAsync(message);
 
-    _serializerMock.Verify(
-      x => x.SerializeMessageToBytesAsync(message),
-      Times.Once);
+    _messageProcessorMock.Verify(x => x.PrepareOutgoingMessageAsync(message), Times.Once);
+    // BroadcastToClientsCoreAsync is private, so we can't verify directly, but no exception means pass
   }
 
   [Test]
   public void Dispose_ShouldCleanupResources()
   {
     _cut.Dispose();
-
     _connectionMock.Verify(mock => mock.Dispose(), Times.Once);
   }
 
@@ -199,9 +108,8 @@ public class ServerTest
   }
 
   [Test]
-  public async Task SendClientsInfoToClient_ShouldSendCurrentClientsList()
+  public async Task SendClientsInfoToClientAsync_ShouldSendCurrentClientsList()
   {
-    // Arrange
     var mockClient = new Mock<ITcpClient>();
     var mockStream = new Mock<Stream>();
     mockClient.Setup(mock => mock.GetStream()).Returns(mockStream.Object);
@@ -210,39 +118,50 @@ public class ServerTest
         new ClientInfo("1", "Test Client"),
         mockClient.Object);
 
-    var serializedBytes = new byte[] { 1, 2, 3 };
-    _serializerMock
-      .Setup(mock => mock.SerializeMessageToBytesAsync(It.Is<Message>(message =>
-        message.Type == MessageType.ActiveClientsInfo &&
-        message.Target == Target.Individual &&
-        message.Sender.Id == "0" &&
-        message.Sender.Name == "Server")))
-      .ReturnsAsync(serializedBytes);
 
-    // Act
+    var clientsField = typeof(ChattingApplication.Infrastructure.Network.Server.Server)
+      .GetField("_clients", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+    var clientsList = (List<ClientSessionInfo>)clientsField.GetValue(_cut)!;
+    clientsList.Add(testClient);
+
+    var clientsInfo = new[] { testClient.Info };
+    var json = JsonSerializer.Serialize(clientsInfo);
+    var contentBytes = Encoding.UTF8.GetBytes(json);
+
+    var expectedMessage = new Message(
+      new ClientInfo("0", "Server"),
+      contentBytes,
+      MessageType.ActiveClientsInfo,
+      Target.Individual,
+      MessageRequest.None);
+
+    var packet = new byte[] { 1, 2, 3 };
+    _messageProcessorMock.Setup(x => x.PrepareOutgoingMessageAsync(It.Is<Message>(m =>
+      m.Type == MessageType.ActiveClientsInfo &&
+      m.Target == Target.Individual &&
+      m.Sender.Id == "0" &&
+      m.Sender.Name == "Server"))).ReturnsAsync(packet);
+
+    mockStream.Setup(x => x.WriteAsync(
+      It.Is<ReadOnlyMemory<byte>>(mem => mem.ToArray().SequenceEqual(packet)),
+      It.IsAny<CancellationToken>())).Returns(ValueTask.CompletedTask);
+
     await _cut.SendClientsInfoToClientAsync(testClient);
 
-    // Assert
-    _serializerMock.Verify(
-      mock => mock.SerializeMessageToBytesAsync(It.Is<Message>(message =>
-        message.Type == MessageType.ActiveClientsInfo &&
-        message.Target == Target.Individual &&
-        message.Sender.Id == "0" &&
-        message.Sender.Name == "Server")),
-      Times.Once);
+    _messageProcessorMock.Verify(x => x.PrepareOutgoingMessageAsync(It.Is<Message>(m =>
+      m.Type == MessageType.ActiveClientsInfo &&
+      m.Target == Target.Individual &&
+      m.Sender.Id == "0" &&
+      m.Sender.Name == "Server")), Times.Once);
 
-    mockStream.Verify(
-      mock => mock.WriteAsync(
-        It.Is<ReadOnlyMemory<byte>>(message =>
-          message.ToArray().SequenceEqual(serializedBytes)),
-        It.IsAny<CancellationToken>()),
-      Times.Once);
+    mockStream.Verify(x => x.WriteAsync(
+      It.Is<ReadOnlyMemory<byte>>(mem => mem.ToArray().SequenceEqual(packet)),
+      It.IsAny<CancellationToken>()), Times.Once);
   }
 
   [Test]
-  public async Task ForwardMessageToClient_ShouldSendMessageToSpecificClient()
+  public async Task ForwardMessageToClientAsync_ShouldSendMessageToSpecificClient()
   {
-    // Arrange
     var mockClient = new Mock<ITcpClient>();
     var mockStream = new Mock<Stream>();
     mockClient.Setup(x => x.GetStream()).Returns(mockStream.Object);
@@ -258,24 +177,18 @@ public class ServerTest
       Target.Individual,
       MessageRequest.None);
 
-    var serializedBytes = new byte[] { 4, 5, 6 };
-    _serializerMock
-      .Setup(mock => mock.SerializeMessageToBytesAsync(message))
-      .ReturnsAsync(serializedBytes);
+    var packet = new byte[] { 4, 5, 6 };
+    _messageProcessorMock.Setup(x => x.PrepareOutgoingMessageAsync(message)).ReturnsAsync(packet);
 
-    // Act
+    mockStream.Setup(x => x.WriteAsync(
+      It.Is<ReadOnlyMemory<byte>>(mem => mem.ToArray().SequenceEqual(packet)),
+      It.IsAny<CancellationToken>())).Returns(ValueTask.CompletedTask);
+
     await _cut.ForwardMessageToClientAsync(recipient, message);
 
-    // Assert
-    _serializerMock.Verify(
-      mock => mock.SerializeMessageToBytesAsync(message),
-      Times.Once);
-
-    mockStream.Verify(
-      mock => mock.WriteAsync(
-        It.Is<ReadOnlyMemory<byte>>(message =>
-          message.ToArray().SequenceEqual(serializedBytes)),
-        It.IsAny<CancellationToken>()),
-      Times.Once);
+    _messageProcessorMock.Verify(x => x.PrepareOutgoingMessageAsync(message), Times.Once);
+    mockStream.Verify(x => x.WriteAsync(
+      It.Is<ReadOnlyMemory<byte>>(mem => mem.ToArray().SequenceEqual(packet)),
+      It.IsAny<CancellationToken>()), Times.Once);
   }
 }
