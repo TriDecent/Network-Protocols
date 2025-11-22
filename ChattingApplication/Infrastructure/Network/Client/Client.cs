@@ -1,4 +1,5 @@
-﻿using ChattingApplication.Common.Enums;
+﻿using System.Net;
+using ChattingApplication.Common.Enums;
 using ChattingApplication.Core.Interfaces;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Core.Serializers;
@@ -6,7 +7,6 @@ using ChattingApplication.Infrastructure.Network.Client.Connection;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 using ChattingApplication.Infrastructure.Network.Client.Operations;
-using System.Net;
 using static ChattingApplication.Core.Interfaces.IClient;
 using Message = ChattingApplication.Core.Models.Message;
 
@@ -26,16 +26,14 @@ public class Client : IClient, IClientOperations, IDisposable
   public Client(
   IClientConnection connection,
   ClientInfo clientInfo,
-  IMessageSerializer serializer,
-  IClientEventEmitter eventEmitter)
+  IClientEventEmitter eventEmitter, IClientSideMessageProcessor messageProcessor)
   {
     ClientInfo = clientInfo;
     _connection = connection;
     _eventEmitter = eventEmitter;
-    _messageProcessor = new ClientSideMessageProcessor(
-      serializer,
-      eventEmitter,
-      id => ClientInfo = ClientInfo with { Id = id });
+    _messageProcessor = messageProcessor;
+
+    _messageProcessor.ClientIdReceived += id => ClientInfo = ClientInfo with { Id = id };
   }
 
   public async Task<ConnectionResult> ConnectServerAsync(IPEndPoint ipEndPoint)

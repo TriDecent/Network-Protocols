@@ -9,13 +9,13 @@ namespace ChattingApplication.Infrastructure.Network.Client.MessageProcessor;
 
 public class ClientSideMessageProcessor(
   IMessageSerializer serializer,
-  IClientEventEmitter eventEmitter,
-  Action<string> updateClientId) : IClientSideMessageProcessor
+  IClientEventEmitter eventEmitter) : IClientSideMessageProcessor
 {
   private const int LENGTH_PREFIX_SIZE = sizeof(int);
   private readonly IMessageSerializer _serializer = serializer;
   private readonly IClientEventEmitter _eventEmitter = eventEmitter;
-  private readonly Action<string> _updateClientId = updateClientId;
+
+  public event Action<string>? ClientIdReceived;
 
   public async Task<Memory<byte>> PrepareOutgoingMessageAsync(Message message)
   {
@@ -31,15 +31,8 @@ public class ClientSideMessageProcessor(
   {
     while (!token.IsCancellationRequested)
     {
-      try
-      {
-        var message = await ReadAMessageFromStreamAsync(stream, token);
-        ProcessMessage(message);
-      }
-      catch (EndOfStreamException)
-      {
-        throw;
-      }
+      var message = await ReadAMessageFromStreamAsync(stream, token);
+      ProcessMessage(message);
     }
   }
 
@@ -69,7 +62,7 @@ public class ClientSideMessageProcessor(
       message.Type is MessageType.CreationClientId)
     {
       var clientId = JsonSerializer.Deserialize<string>(message.Content)!;
-      _updateClientId(clientId);
+      ClientIdReceived?.Invoke(clientId);
     }
 
     _eventEmitter.EmitUnicastMessageReceived(message);
