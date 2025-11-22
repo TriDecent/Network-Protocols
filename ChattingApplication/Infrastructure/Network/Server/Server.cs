@@ -1,4 +1,3 @@
-using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
@@ -19,7 +18,6 @@ public class Server : IServer, IServerOperations, IDisposable
 {
   private static readonly ClientInfo SERVER_INFO = new("0", "Server");
   private readonly IServerConnection _connection;
-  private readonly IMessageSerializer _serializer;
   private readonly IServerEventEmitter _eventEmitter;
   private readonly IServerSideMessageProcessor _messageProcessor;
   private CancellationTokenSource _listeningCTS = new();
@@ -47,7 +45,6 @@ public class Server : IServer, IServerOperations, IDisposable
     IServerEventEmitter eventEmitter)
   {
     _connection = connection;
-    _serializer = serializer;
     _eventEmitter = eventEmitter;
 
     _messageProcessor = new ServerSideMessageProcessor(
@@ -117,21 +114,21 @@ public class Server : IServer, IServerOperations, IDisposable
 
   public async Task BroadcastMessageToAllClientsAsync(Message message)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
-    await BroadcastToClientsCoreAsync(messageBytes);
+    var packet = await _messageProcessor.PrepareOutgoingMessageAsync(message);
+    await BroadcastToClientsCoreAsync(packet);
   }
 
   public async Task BroadcastMessageToClientsExceptAsync(Message message, ClientSessionInfo excludedClient)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
-    await BroadcastToClientsCoreAsync(messageBytes, excludedClient);
+    var packet = await _messageProcessor.PrepareOutgoingMessageAsync(message);
+    await BroadcastToClientsCoreAsync(packet, excludedClient);
   }
 
   public async Task SendUnicastMessageAsync(ClientSessionInfo clientInfo, Message message)
   {
-    var messageBytes = await _serializer.SerializeMessageToBytesAsync(message);
+    var packet = await _messageProcessor.PrepareOutgoingMessageAsync(message);
     var clientStream = clientInfo.Client.GetStream();
-    await clientStream.WriteAsync(messageBytes, _shutdownCTS.Token);
+    await clientStream.WriteAsync(packet, _shutdownCTS.Token);
   }
 
   public Task SendClientsInfoToClientAsync(ClientSessionInfo client)
