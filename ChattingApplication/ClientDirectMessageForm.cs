@@ -1,11 +1,12 @@
-﻿using ChattingApplication.Common.Enums;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Core.Models;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
 using ChattingApplication.Infrastructure.Network.Client.Operations;
-using System.Text;
-using System.Text.Json;
 using Message = ChattingApplication.Core.Models.Message;
 using Timer = System.Windows.Forms.Timer;
 
@@ -15,7 +16,7 @@ public partial class ClientDirectMessageForm : Form
 {
   private readonly Label _recipientNameLabel, _senderNameLabel;
 
-  private readonly Button _attachItemButton, _detachItemButton, _sendButton;
+  private readonly Button _attachItemButton, _detachItemButton, _sendButton, _callButton;
   private readonly TextBox _messageTextBox;
   private readonly RichTextBox _chatDisplayArea;
   private readonly ChatMessageRenderer _chatRenderer;
@@ -27,7 +28,11 @@ public partial class ClientDirectMessageForm : Form
 
   private readonly Timer _activeRecipientCheckTimer;
   private readonly EventHandler _timerTickHandler;
-  private EventHandler<MessageReceivedEventArgs>? _messageReceivedHandler;
+  private readonly EventHandler<MessageReceivedEventArgs>? _messageReceivedHandler;
+  private readonly IClientOperations _operations;
+
+  private bool _hasStartedACall = false;
+  private CallForm? _callForm;
 
   public ClientDirectMessageForm(
     ClientInfo sender,
@@ -43,18 +48,20 @@ public partial class ClientDirectMessageForm : Form
     _recipientNameLabel = lblRecipientName;
     _senderNameLabel = lblSenderName;
     _sendButton = btnSend;
+    _callButton = btnCall;
     _attachItemButton = btnAttach;
     _detachItemButton = btnDetach;
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
     _activeRecipientCheckTimer = RecipientActivityCheckTimer;
     _chatRenderer = new ChatMessageRenderer(_chatDisplayArea);
+    _operations = operations;
 
     _recipientNameLabel.Text = recipient.Name;
     _senderNameLabel.Text = sender.Name;
 
     _sendButton.Click += async (s, e) =>
-      await OnSendMessageClickedAsync(operations);
+      await OnSendMessageClickedAsync();
     _attachItemButton.Click += (s, e) => OnAttachButtonClicked();
     _detachItemButton.Click += (s, e) => OnDetachButtonClicked();
 
@@ -77,12 +84,11 @@ public partial class ClientDirectMessageForm : Form
     FormClosing += (s, e) => CleanupHandlers(eventEmitter);
   }
 
-  private async Task OnSendMessageClickedAsync(
-    IClientOperations operations)
+  private async Task OnSendMessageClickedAsync()
   {
     if (string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
-    await SendContent(_messageTextBox.Text, operations);
+    await SendContent(_messageTextBox.Text);
     ClearUserMessageInput();
   }
 
@@ -123,15 +129,13 @@ public partial class ClientDirectMessageForm : Form
   }
 
   private Task SendContent(
-    string content,
-    IClientOperations operations)
+    string content)
       => _isSendingImage ?
-      SendImageAsync(content, operations) :
-      SendTextAsync(content, operations);
+      SendImageAsync(content) :
+      SendTextAsync(content);
 
   private async Task SendImageAsync(
-    string filePath,
-    IClientOperations operations)
+    string filePath)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
@@ -140,13 +144,12 @@ public partial class ClientDirectMessageForm : Form
       MessageType.Image,
       _recipient);
 
-    await SendAndDisplayAsync(message, operations, () =>
+    await SendAndDisplayAsync(message, () =>
       _chatRenderer.DisplayImage(_sender.Name, image, true));
   }
 
   private async Task SendTextAsync(
-    string text,
-    IClientOperations operations)
+    string text)
   {
     var message = CreateMessage(
       _sender,
@@ -154,7 +157,7 @@ public partial class ClientDirectMessageForm : Form
       MessageType.Text,
       _recipient);
 
-    await SendAndDisplayAsync(message, operations, () =>
+    await SendAndDisplayAsync(message, () =>
       _chatRenderer.DisplayMessage(_sender.Name, text, true));
   }
 
@@ -168,12 +171,11 @@ public partial class ClientDirectMessageForm : Form
         MessageRequest.None,
         recipient);
 
-  private static async Task SendAndDisplayAsync(
+  private async Task SendAndDisplayAsync(
     Message message,
-    IClientOperations operation,
     Action displayAction)
   {
-    await operation.SendMessageAsync(message);
+    await _operations.SendMessageAsync(message);
     displayAction();
   }
 
@@ -215,4 +217,32 @@ public partial class ClientDirectMessageForm : Form
     _activeRecipientCheckTimer.Tick -= _timerTickHandler;
     eventEmitter.UnicastMessageReceived -= _messageReceivedHandler;
   }
+
+  private async void BtnCall_Click(object sender, EventArgs e)
+  {
+
+    var content = "Started a call";
+    var message = CreateMessage(
+      _sender,
+      Encoding.UTF8.GetBytes(content),
+      MessageType.Call,
+      _recipient);
+    await SendAndDisplayAsync(
+      message,
+      () => _chatRenderer.DisplayMessage(_sender.Name, content, true));
+    _hasStartedACall = true;
+
+    _callForm = new CallForm(
+      $"localhost:3000/calls?roomName={BuildRoomName(_sender.Id, _recipient.Id)}&userName={Uri.EscapeDataString(_sender.Name)}",
+      async () =>
+      {
+        _hasStartedACall = false;
+        await SendTextAsync("Ended the call");
+      });
+    _callForm.Show();
+    _callForm.Focus();
+  }
+
+  static string BuildRoomName(string a, string b)
+    => string.CompareOrdinal(a, b) < 0 ? $"{a}:{b}" : $"{b}:{a}";
 }

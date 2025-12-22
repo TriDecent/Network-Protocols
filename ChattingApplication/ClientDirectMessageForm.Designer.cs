@@ -38,6 +38,7 @@
       txtMessage = new TextBox();
       lblSenderName = new Label();
       RecipientActivityCheckTimer = new System.Windows.Forms.Timer(components);
+      btnCall = new Button();
       SuspendLayout();
       // 
       // lblRecipientName
@@ -88,7 +89,7 @@
       // btnSend
       // 
       btnSend.Font = new Font("Segoe UI", 12F);
-      btnSend.Location = new Point(448, 469);
+      btnSend.Location = new Point(380, 468);
       btnSend.Name = "btnSend";
       btnSend.Size = new Size(62, 31);
       btnSend.TabIndex = 36;
@@ -110,7 +111,7 @@
       txtMessage.Font = new Font("Segoe UI", 12F);
       txtMessage.Location = new Point(66, 470);
       txtMessage.Name = "txtMessage";
-      txtMessage.Size = new Size(378, 29);
+      txtMessage.Size = new Size(305, 29);
       txtMessage.TabIndex = 34;
       // 
       // lblSenderName
@@ -123,11 +124,23 @@
       lblSenderName.TabIndex = 41;
       lblSenderName.Text = "Trí Decent";
       // 
+      // btnCall
+      // 
+      btnCall.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnCall.Location = new Point(448, 469);
+      btnCall.Name = "btnCall";
+      btnCall.Size = new Size(62, 31);
+      btnCall.TabIndex = 42;
+      btnCall.Text = "Call";
+      btnCall.UseVisualStyleBackColor = true;
+      btnCall.Click += BtnCall_Click;
+      // 
       // ClientDirectMessageForm
       // 
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
       ClientSize = new Size(526, 514);
+      Controls.Add(btnCall);
       Controls.Add(lblSenderName);
       Controls.Add(lblRecipientName);
       Controls.Add(btnDetach);
@@ -154,5 +167,6 @@
     private TextBox txtMessage;
     private Label lblSenderName;
     private System.Windows.Forms.Timer RecipientActivityCheckTimer;
+    private Button btnCall;
   }
 }

@@ -44,6 +44,7 @@
       txtName = new TextBox();
       lblName = new Label();
       btnDirectMessage = new Button();
+      btnCall = new Button();
       SuspendLayout();
       // 
       // txtMessage
@@ -51,7 +52,7 @@
       txtMessage.Font = new Font("Segoe UI", 12F);
       txtMessage.Location = new Point(68, 471);
       txtMessage.Name = "txtMessage";
-      txtMessage.Size = new Size(378, 29);
+      txtMessage.Size = new Size(308, 29);
       txtMessage.TabIndex = 0;
       // 
       // lblServerIP
@@ -67,9 +68,9 @@
       // btnSend
       // 
       btnSend.Font = new Font("Segoe UI", 12F);
-      btnSend.Location = new Point(450, 471);
+      btnSend.Location = new Point(382, 470);
       btnSend.Name = "btnSend";
-      btnSend.Size = new Size(62, 29);
+      btnSend.Size = new Size(62, 30);
       btnSend.TabIndex = 3;
       btnSend.Text = "Send";
       btnSend.UseVisualStyleBackColor = true;
@@ -201,12 +202,24 @@
       btnDirectMessage.UseVisualStyleBackColor = true;
       btnDirectMessage.Visible = false;
       // 
+      // btnCall
+      // 
+      btnCall.Font = new Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
+      btnCall.Location = new Point(450, 471);
+      btnCall.Name = "btnCall";
+      btnCall.Size = new Size(62, 29);
+      btnCall.TabIndex = 16;
+      btnCall.Text = "Call";
+      btnCall.UseVisualStyleBackColor = true;
+      btnCall.Click += BtnCall_Click;
+      // 
       // ClientForm
       // 
       AcceptButton = btnSend;
       AutoScaleDimensions = new SizeF(7F, 15F);
       AutoScaleMode = AutoScaleMode.Font;
-      ClientSize = new Size(528, 543);
+      ClientSize = new Size(528, 544);
+      Controls.Add(btnCall);
       Controls.Add(btnDirectMessage);
       Controls.Add(lblName);
       Controls.Add(txtName);
@@ -248,5 +261,6 @@
     private TextBox txtName;
     private Label lblName;
     private Button btnDirectMessage;
+    private Button btnCall;
   }
 }

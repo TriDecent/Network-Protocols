@@ -1,11 +1,10 @@
+using System.Net;
+using System.Text;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
 using ChattingApplication.Common.Utils;
 using ChattingApplication.Infrastructure.Network.Client;
 using ChattingApplication.Infrastructure.Network.Client.EventEmitter;
-using System.Net;
-using System.Text;
-
 using Message = ChattingApplication.Core.Models.Message;
 
 namespace ChattingApplication;
@@ -17,6 +16,7 @@ public partial class ClientForm : Form
   private readonly Button _attachItemButton;
   private readonly Button _detachItemButton;
   private readonly Button _directMessageButton;
+  private readonly Button _callButton;
   private readonly RichTextBox _chatDisplayArea;
   private readonly TextBox _messageTextBox;
   private readonly TextBox _serverIPTextBox, _serverPortTextBox;
@@ -27,7 +27,9 @@ public partial class ClientForm : Form
   private readonly ChatMessageRenderer _chatRenderer;
 
   private bool _isSendingImage = false;
+  private bool _hasStartedACall = false;
   private ClientOnlineClientsForm? _onlineClientsForm;
+  private CallForm? _callForm;
 
   public ClientForm(Client client, IClientEventEmitter eventEmitter)
   {
@@ -37,6 +39,7 @@ public partial class ClientForm : Form
     _disconnectServerButton = btnDisconnectServer;
     _attachItemButton = btnAttach;
     _detachItemButton = btnDetach;
+    _callButton = btnCall;
     _directMessageButton = btnDirectMessage;
     _messageTextBox = txtMessage;
     _chatDisplayArea = rtbDialogArea;
@@ -160,21 +163,21 @@ public partial class ClientForm : Form
   private async void BtnSend_Click(object sender, EventArgs e)
   {
     if (_client.State != ClientState.Connected ||
-        string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
+      string.IsNullOrWhiteSpace(_messageTextBox.Text)) return;
 
     await SendContentAsync(_messageTextBox.Text);
     ClearUserMessageInput();
   }
 
   private Task SendContentAsync(string content)
-      => _isSendingImage ? SendImageAsync(content) : SendTextAsync(content);
+    => _isSendingImage ? SendImageAsync(content) : SendTextAsync(content);
 
   private async Task SendImageAsync(string filePath)
   {
     using var image = Image.FromFile(filePath);
     var message = CreateMessage(
-        ImageByteConverter.ImageToBytes(image),
-        MessageType.Image);
+      ImageByteConverter.ImageToBytes(image),
+      MessageType.Image);
 
     await SendAndDisplayAsync(message, () =>
       _chatRenderer.DisplayImage(_client.ClientInfo.Name, image, true));
@@ -183,11 +186,11 @@ public partial class ClientForm : Form
   private async Task SendTextAsync(string text)
   {
     var message = CreateMessage(
-        Encoding.UTF8.GetBytes(text),
-        MessageType.Text);
+      Encoding.UTF8.GetBytes(text),
+      MessageType.Text);
 
     await SendAndDisplayAsync(message, () =>
-        _chatRenderer.DisplayMessage(_client.ClientInfo.Name, text, true));
+      _chatRenderer.DisplayMessage(_client.ClientInfo.Name, text, true));
   }
 
   private Message CreateMessage(byte[] content, MessageType type)
@@ -232,6 +235,27 @@ public partial class ClientForm : Form
   {
     _attachItemButton.Visible = !_isSendingImage;
     _detachItemButton.Visible = _isSendingImage;
+  }
+
+  private async void BtnCall_Click(object sender, EventArgs e)
+  {
+    if (_client.State != ClientState.Connected || _hasStartedACall) return;
+
+    var content = "Started a call";
+    var message = CreateMessage(Encoding.UTF8.GetBytes(content), MessageType.Call);
+    await SendAndDisplayAsync(message,
+      () => _chatRenderer.DisplayMessage(_client.ClientInfo.Name, content, true));
+    _hasStartedACall = true;
+
+    _callForm = new CallForm(
+      $"localhost:3000/calls?roomName=general&userName={Uri.EscapeDataString(_client.ClientInfo.Name)}",
+      async () =>
+      {
+        _hasStartedACall = false;
+        await SendTextAsync("Ended the call");
+      });
+    _callForm.Show();
+    _callForm.Focus();
   }
 
   private void ClearUserMessageInput() => _messageTextBox.Text = "";
