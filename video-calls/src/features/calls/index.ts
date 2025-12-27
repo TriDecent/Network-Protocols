@@ -1,2 +1,1 @@
-export { RoomProvider } from './provider/RoomProvider';
-export { VideoCallCard } from './video/VideoCallCard';
+export { CallCard } from './CallCard';

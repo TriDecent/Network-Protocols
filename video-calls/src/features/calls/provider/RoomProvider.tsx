@@ -3,6 +3,7 @@
 import { Loading } from '@/shared/components';
 import { RoomContext, useLiveKitRoom } from '@livekit/components-react';
 import { useEffect, type ReactNode } from 'react';
+import { CallProvider } from './CallProvider';
 
 declare global {
   interface Window {
@@ -26,7 +27,7 @@ export function RoomProvider({
   const { room, htmlProps } = useLiveKitRoom({
     serverUrl,
     token,
-    connect: true,
+    connect: false,
   });
 
   useEffect(() => {
@@ -54,7 +55,9 @@ export function RoomProvider({
 
   return (
     <RoomContext value={room}>
-      <div {...htmlProps}>{children}</div>
+      <CallProvider value={{ serverUrl, token }}>
+        <div {...htmlProps}>{children}</div>
+      </CallProvider>
     </RoomContext>
   );
 }

@@ -1,19 +1,19 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 type CallConfig = Readonly<{
-  isCameraEnabled: boolean;
-  isMicrophoneEnabled: boolean;
-  isSpeakerEnabled: boolean;
-  isScreenShareEnabled: boolean;
-  isScreenShareAudioEnabled: boolean;
+  shouldCamEnabled: boolean;
+  shouldMicEnabled: boolean;
+  shouldSpeakerEnabled: boolean;
+  shouldScreenShareEnabled: boolean;
+  shouldScreenShareAudioEnabled: boolean;
 }>;
 
 const initialState: CallConfig = {
-  isCameraEnabled: false,
-  isMicrophoneEnabled: false,
-  isSpeakerEnabled: false,
-  isScreenShareEnabled: false,
-  isScreenShareAudioEnabled: false,
+  shouldCamEnabled: false,
+  shouldMicEnabled: false,
+  shouldSpeakerEnabled: false,
+  shouldScreenShareEnabled: false,
+  shouldScreenShareAudioEnabled: false,
 };
 
 export const callSlice = createSlice({
@@ -21,13 +21,13 @@ export const callSlice = createSlice({
   initialState,
   reducers: {
     setCameraEnabled(state, action: PayloadAction<boolean>) {
-      state.isCameraEnabled = action.payload;
+      state.shouldCamEnabled = action.payload;
     },
     setMicrophoneEnabled(state, action: PayloadAction<boolean>) {
-      state.isMicrophoneEnabled = action.payload;
+      state.shouldMicEnabled = action.payload;
     },
     setSpeakerEnabled(state, action: PayloadAction<boolean>) {
-      state.isSpeakerEnabled = action.payload;
+      state.shouldSpeakerEnabled = action.payload;
     },
   },
 });

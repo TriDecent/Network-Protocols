@@ -1,0 +1,1 @@
+export { VideoCallCard } from './VideoCallCard';

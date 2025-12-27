@@ -1,5 +1,6 @@
-import { RoomProvider, VideoCallCard } from '@/features/calls';
+import { CallCard } from '@/features/calls';
 import { ROUTES } from '@/shared/constants';
+import { RoomProvider } from '@/shared/provider';
 import { AccessToken } from 'livekit-server-sdk';
 import type { Metadata } from 'next';
 import z from 'zod';
@@ -32,7 +33,7 @@ export default async function CallsPage({
     <section>
       {parsedResult.success ? (
         <RoomProvider serverUrl={serverUrl} token={token}>
-          <VideoCallCard />
+          <CallCard />
         </RoomProvider>
       ) : null}
     </section>
