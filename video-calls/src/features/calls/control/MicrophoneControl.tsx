@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 export function MicrophoneControl() {
   const isMicrophoneEnabled = useAppSelector(
-    state => state.call.isMicrophoneEnabled
+    state => state.call.shouldMicEnabled
   );
   const {
     toggle: toggleMicrophone,

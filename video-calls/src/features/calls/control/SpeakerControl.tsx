@@ -6,7 +6,9 @@ import { callActions } from '@/store';
 import { HiOutlineSpeakerWave, HiOutlineSpeakerXMark } from 'react-icons/hi2';
 
 export function SpeakerControl() {
-  const isSpeakerEnabled = useAppSelector(state => state.call.isSpeakerEnabled);
+  const isSpeakerEnabled = useAppSelector(
+    state => state.call.shouldSpeakerEnabled
+  );
   const dispatch = useAppDispatch();
 
   return (

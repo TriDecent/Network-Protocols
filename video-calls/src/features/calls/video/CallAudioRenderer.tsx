@@ -16,7 +16,7 @@ import { shallowEqual } from 'react-redux';
 
 export function CallAudioRenderer() {
   const isSpeakerEnabled = useAppSelector(
-    state => state.call.isSpeakerEnabled,
+    state => state.call.shouldSpeakerEnabled,
     shallowEqual
   );
 

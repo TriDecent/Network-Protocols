@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 export function ScreenShareControl() {
   const isScreenShareEnabled = useAppSelector(
-    state => state.call.isScreenShareEnabled
+    state => state.call.shouldScreenShareAudioEnabled
   );
   const {
     toggle: toggleScreenShare,

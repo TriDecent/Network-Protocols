@@ -9,7 +9,7 @@ import { IoVolumeMedium, IoVolumeMute } from 'react-icons/io5';
 
 export function ToggleRemoteParticipantMute() {
   const isGlobalSpeakerEnabled = useAppSelector(
-    state => state.call.isSpeakerEnabled
+    state => state.call.shouldSpeakerEnabled
   );
   const participantTracks = useParticipantTracks([
     Track.Source.Microphone,

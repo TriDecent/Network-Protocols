@@ -9,7 +9,8 @@ import { Video, VideoOff } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function CameraControl() {
-  const isCameraEnabled = useAppSelector(state => state.call.isCameraEnabled);
+  const isCameraEnabled = useAppSelector(state => state.call.shouldCamEnabled);
+
   const {
     toggle: toggleMicrophone,
     enabled: cameraEnabled,
