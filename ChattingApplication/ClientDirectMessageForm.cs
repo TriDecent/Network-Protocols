@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using ChattingApplication.Common.Enums;
 using ChattingApplication.Common.Events;
@@ -97,6 +96,8 @@ public partial class ClientDirectMessageForm : Form
   {
     if (message.Type is MessageType.ActiveClientsInfo)
     {
+      if (_recipient.Id == "0") return;
+
       var clientsInfo = JsonSerializer.Deserialize<IEnumerable<ClientInfo>>(message.Content);
       var isRecipientActive = clientsInfo?.Any(client => client.Id == _recipient.Id) ?? false;
       if (!isRecipientActive)

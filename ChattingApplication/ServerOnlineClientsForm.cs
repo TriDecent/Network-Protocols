@@ -81,7 +81,7 @@ public partial class ServerOnlineClientsForm : Form
 
     foreach (ListViewItem item in _lvOnlineClients.Items)
     {
-      if (item.Tag is ClientSessionInfo client)
+      if (item.Tag is ClientSessionInfo client && e.ClientSessionInfo.Info.Id == client.Info.Id)
       {
         _lvOnlineClients.Items.Remove(item);
         break;
